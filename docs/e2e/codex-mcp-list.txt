@@ -1,0 +1,3 @@
+Name       Command                         Args                                       Env  Cwd  Status   Auth       
+bili       /usr/bin/python3                /root/.codex/billion-context/bootstrap.py  -    -    enabled  Unsupported
+mempalace  /root/.local/bin/mempalace-mcp  -                                          -    -    enabled  Unsupported

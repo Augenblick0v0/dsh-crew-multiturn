@@ -1,0 +1,4 @@
+$ curl -s http://127.0.0.1:3099/_dsh/dsh-crew/ping
+{"ok":true,"service":"dsh-crew-hub"}
+$ curl -s http://127.0.0.1:3099/_dsh/dsh-crew/config
+{"ok":true,"config":{"default_tier":"flash","default_effort":"max","mode":"auto","default_timeout_seconds":1800,"hub_url":"http://127.0.0.1:3080","tier_policy":"auto","escalate_on_failure":false,"vision_provider":"claude-code","vision_model":"haiku","imagegen_provider":"codex","custom_providers":[],"extra_models":{},"flash_provider":"","flash_model":"","pro_provider":"","pro_model":"","preset_flash":"minimal","preset_pro":"default","question_policy":"ask","idle_ttl_seconds":1800,"question_timeout_seconds":900}}

@@ -12,7 +12,10 @@ test('the hub preserves needs_input after disposal and exposes the unresolved qu
     await options.setup({ on(name, fn) { if (name === 'user-questions/request') handler = fn; } });
     return { agent, dispose() { disposed = true; } };
   } } };
+  // T05 changed the default policy to `ask`; this fixture pins the upstream
+  // unattended handoff behavior it was written for.
   const registry = new WorkerRegistry(ctx, { publish() {} });
+  registry.getConfig = () => ({ question_policy: 'handoff' });
   const job = await registry.spawn({ task: 'fixture only', cwd: '/fixture', tier: 'flash' });
   await job.promise;
   assert.equal(job.status, 'needs_input');

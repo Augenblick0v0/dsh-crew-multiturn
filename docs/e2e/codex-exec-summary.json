@@ -1,0 +1,35 @@
+{
+  "codex_version": "codex-cli 0.162.1",
+  "events": 10,
+  "thread_id": "01a18e71-0f08-7c62-98bb-23c0f93faa96",
+  "tool_calls": [
+    {
+      "server": "dsh-crew",
+      "tool": "dsh_worker_status",
+      "arguments": {},
+      "status": "completed",
+      "error": null
+    },
+    {
+      "server": "dsh-crew",
+      "tool": "dsh_worker_result",
+      "arguments": {
+        "job_id": "hub-2-mvverhn1"
+      },
+      "status": "completed",
+      "error": null
+    }
+  ],
+  "final_answer": "1. Status list contained the job: Yes\n2. Job status: `idle`\n3. Number of turns: `3`\n4. `pendingQuestions` length: `0`",
+  "usage": {
+    "input_tokens": 53987,
+    "cached_input_tokens": 26112,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 569,
+    "reasoning_output_tokens": 379
+  },
+  "warnings": [
+    "Codex is ignoring 3 unrecognized configuration settings. Check for typos or deprecated settings.\n  user (/root/.codex/config.toml): `disable_response_storage` is ignored.\n  user (/root/.codex/config.toml): `network_access` is ignored.\n  user (/root/.codex/config.toml): `windows_wsl_setup_acknowledged` is ignored.",
+    "Codex is ignoring 3 unrecognized configuration settings. Check for typos or deprecated settings.\n  user (/root/.codex/config.toml): `disable_response_storage` is ignored.\n  user (/root/.codex/config.toml): `network_access` is ignored.\n  user (/root/.codex/config.toml): `windows_wsl_setup_acknowledged` is ignored."
+  ]
+}

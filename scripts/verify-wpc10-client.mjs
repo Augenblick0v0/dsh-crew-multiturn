@@ -41,6 +41,7 @@ try {
   const zh = {
     statusRunning: '运行中', statusStalled: '疑似卡住', statusDone: '完成',
     statusFailed: '失败', statusCancelled: '已取消', statusOrphaned: '失联',
+    statusIdle: '空闲', statusExpired: '已过期',
     statusTitle: (s) => `状态：${s}`, orphanWriterGone: (o) => `writer gone ${o}`,
     orphanVanished: (a) => `vanished ${a}`, stalledTip: (l) => `stalled ${l}`,
     shardStale: (m) => `stale ${m}`,
@@ -121,6 +122,10 @@ try {
   check('orphaned → orange + orphan label', sOrph.color === '#f0883e' && sOrph.label === '失联');
   const sDone = statusInfoOf(job({ status: 'done' }), zh);
   check('done → green', sDone.color === '#3fb950' && sDone.label === '完成');
+  const sIdle = statusInfoOf(job({ status: 'idle' }), zh);
+  check('idle → green, not failed', sIdle.color === '#3fb950' && sIdle.label === '空闲');
+  const sExpired = statusInfoOf(job({ status: 'expired' }), zh);
+  check('expired → neutral, not failed', sExpired.color === '#8b949e' && sExpired.label === '已过期');
 
   // 9. Ghost registry is capped.
   let gc = {};

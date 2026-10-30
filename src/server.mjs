@@ -11,7 +11,12 @@ import { readInheritedOrigin, extendOrigin, DEFAULT_ORIGIN_DEPTH_LIMIT } from '.
 import { acquireCwdLock, releaseCwdLockByJobId, updateCwdLockHolder, getCwdLocks, CwdLockError } from './cwd-lock.mjs';
 import { resolveWorkerCwd } from './paths.mjs';
 import { detectOrchestrator } from './process-info.mjs';
+import { pathToFileURL } from 'node:url';
+import { readGlobalConfig } from './install/install.mjs';
+import { describeBindings, resolveTierBinding } from './tier-binding.mjs';
 
+export function createServer({ hub: injectedHub = hub, hubAvailable: hubReady = hubAvailable } = {}) {
+const hub = injectedHub;
 const server = new McpServer({ name: 'dsh-crew', version: '0.1.0-rc.14' });
 
 const tierSchema = z.enum(['flash', 'pro']).optional().describe('Worker model tier. flash = mechanical, well-scoped work (single-file edits, lookups, formatting); pro = multi-file changes, debugging, design judgment. Omit to use the session default. Ignored when worker= is set.');
@@ -23,8 +28,6 @@ const allowConcurrentCwdSchema = z.boolean().optional().describe('Allow this dis
 // as one Claude Code / Codex session, so plain memory IS session scope.
 // Initial values come from the global config (~/.config/dsh-crew/config.json,
 // edited on the DSH settings page); dsh_worker_config overrides per session.
-import { readGlobalConfig } from './install/install.mjs';
-import { describeBindings, resolveTierBinding } from './tier-binding.mjs';
 const globalDefaults = readGlobalConfig();
 const sessionConfig = {
   enabled: true,
@@ -44,6 +47,12 @@ const sessionConfig = {
   pro_model: globalDefaults.pro_model ?? '',
   // WPC9: max worker→worker nesting depth before a dispatch is refused.
   origin_depth_limit: DEFAULT_ORIGIN_DEPTH_LIMIT,
+  // C02: ask = park a worker's user-question and keep the turn alive until
+  // dsh_worker_message (or the timeout) answers it; handoff = the legacy
+  // behaviour where the question is returned as an unattended failure.
+  question_policy: globalDefaults.question_policy ?? 'ask',
+  idle_ttl_seconds: globalDefaults.idle_ttl_seconds ?? 1800,
+  question_timeout_seconds: globalDefaults.question_timeout_seconds ?? 900,
 };
 
 /** The {provider, model} this session dispatches `tier` to. */
@@ -65,6 +74,61 @@ function applyTierPolicy(tier) {
 
 function text(obj) {
   return { content: [{ type: 'text', text: typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2) }] };
+}
+
+/** A hub job is settled only in a terminal state; idle/needs_input sessions stay live. */
+const TERMINAL_JOB_STATUSES = new Set(['done', 'failed', 'cancelled', 'expired']);
+function isTerminalJobStatus(status) {
+  return TERMINAL_JOB_STATUSES.has(status);
+}
+
+/** Turn records from either a hub view (turnRecords) or a standalone view. */
+function turnsArray(view) {
+  if (Array.isArray(view?.turnRecords)) return view.turnRecords;
+  if (Array.isArray(view?.turns)) return view.turns;
+  return [];
+}
+
+/** Pending question details; hub views expose these only with the result. */
+function pendingQuestionsArray(view) {
+  if (Array.isArray(view?.pendingQuestionDetails)) return view.pendingQuestionDetails;
+  if (Array.isArray(view?.pendingQuestions)) return view.pendingQuestions;
+  return [];
+}
+
+/** Stable dsh_worker_result shape: status, turns[], result, pendingQuestions[]. */
+function resultPayload(view) {
+  const { turnRecords, pendingQuestionDetails, ...rest } = view ?? {};
+  const turns = turnsArray(view);
+  const pendingQuestions = pendingQuestionsArray(view);
+  return { ...rest, turns, pendingQuestions, pendingQuestionCount: pendingQuestions.length };
+}
+
+/** Stable dsh_worker_status entry fields, including standalone/CLI jobs. */
+function statusPayload(view) {
+  const turns = Array.isArray(view?.turns)
+    ? view.turns.length
+    : Number.isFinite(view?.turns) ? view.turns : turnsArray(view).length;
+  const pendingQuestions = Array.isArray(view?.pendingQuestions)
+    ? view.pendingQuestions.length
+    : Number.isFinite(view?.pendingQuestions) ? view.pendingQuestions : 0;
+  return {
+    ...view,
+    turns,
+    turn: view?.turn ?? 0,
+    currentTool: view?.currentTool ?? null,
+    pendingQuestions,
+    lastEventAt: view?.lastEventAt ?? view?.activity?.lastEventAt ?? null,
+  };
+}
+
+/** Turn an HTTP error from the hub client into a readable tool payload. */
+function hubErrorPayload(err) {
+  const out = { error: err?.message ?? String(err) };
+  if (Number.isInteger(err?.status)) out.http_status = err.status;
+  if (err?.body?.status) out.job_status = err.body.status;
+  if (Array.isArray(err?.body?.allowed)) out.allowed = err.body.allowed;
+  return out;
 }
 
 // Which orchestrator spawned this MCP server — stamped on every job so the
@@ -115,7 +179,7 @@ async function acquireDispatchLock({ cwd, backend, mode, allowConcurrent }) {
     } catch (err) {
       if (!(err instanceof CwdLockError) || attempt > 0 || err.holder.mode !== 'hub') throw err;
       let settled = false;
-      try { settled = (await hub.get(err.holder.jobId, 0)).status !== 'running'; }
+      try { settled = isTerminalJobStatus((await hub.get(err.holder.jobId, 0)).status); }
       catch (e) { if (String(e?.message ?? e).includes('no such job')) settled = true; }
       if (!settled) throw err;
       releaseCwdLockByJobId(err.holder.jobId);
@@ -131,7 +195,7 @@ function dispatchDisabled() {
 
 async function resolveMode() {
   if (sessionConfig.mode === 'standalone') return 'standalone';
-  const up = await hubAvailable();
+  const up = await hubReady();
   if (sessionConfig.mode === 'hub' && !up) throw new Error('session mode is "hub" but the DSH workers hub is not reachable');
   return up ? 'hub' : 'standalone';
 }
@@ -170,7 +234,7 @@ server.registerTool('dsh_run_worker', {
       throw err;
     }
     await waitJob(job.id, timeout * 1000);
-    const view = jobView(job, { withResult: true });
+    const view = statusPayload(jobView(job, { withResult: true }));
     if (view.status === 'running') return text({ ...view, note: `still running after ${timeout}s; poll with dsh_worker_result` });
     return text(view);
   }
@@ -188,7 +252,7 @@ server.registerTool('dsh_run_worker', {
       }
       let spawned;
       try {
-        spawned = await hub.spawn({ task, tier: t, effort: e, cwd: workDir, source: ORCHESTRATOR, preset: presetForTier(t), ...bindingForTier(t), origin_chain: origin.origin.chain, origin_depth: origin.origin.depth });
+        spawned = await hub.spawn({ task, tier: t, effort: e, cwd: workDir, source: ORCHESTRATOR, preset: presetForTier(t), ...bindingForTier(t), question_policy: sessionConfig.question_policy, idle_ttl_seconds: sessionConfig.idle_ttl_seconds, question_timeout_seconds: sessionConfig.question_timeout_seconds, origin_chain: origin.origin.chain, origin_depth: origin.origin.depth });
         updateCwdLockHolder({ cwd: workDir, jobId: spawned.id });
         hubOrigins.set(spawned.id, origin.origin);
       } catch (err) {
@@ -200,8 +264,8 @@ server.registerTool('dsh_run_worker', {
       // reported as a bare "fetch failed" while the job kept running.
       const got = await hub.get(spawned.id, timeout);
       attachOrigin(got, spawned.id);
-      if (got.status !== 'running') releaseCwdLockByJobId(spawned.id);
-      return { view: got };
+      if (isTerminalJobStatus(got.status)) releaseCwdLockByJobId(spawned.id);
+      return { view: statusPayload(got) };
     }
     const origin = extendOrigin({ inherited: INHERITED_ORIGIN, backend: 'standalone', cwd: workDir, source: ORCHESTRATOR, depthLimit });
     if (!origin.ok) return { refusal: originRefusal(origin) };
@@ -213,7 +277,7 @@ server.registerTool('dsh_run_worker', {
       throw err;
     }
     await waitJob(job.id, timeout * 1000);
-    return { view: jobView(job, { withResult: true }) };
+    return { view: statusPayload(jobView(job, { withResult: true })) };
   };
 
   const firstTier = applyTierPolicy(tier);
@@ -241,7 +305,7 @@ server.registerTool('dsh_worker_probe', {
   description: 'Explicitly test one DSH-configured provider/model with a small no-op tool-call request. Requires the hub. Does not start a worker, touch files, or change bindings; it may consume one model request. A listed provider is not proof of agent/tool support. Results are observations at checked_at, not a permanent capability guarantee.',
   inputSchema: { tier: z.enum(['flash', 'pro']).optional(), provider: z.string().optional(), model: z.string().optional() },
 }, async ({ tier, provider, model }) => {
-  if (!(await hubAvailable())) return text({ status: 'hub_unavailable', tool_call_verified: false });
+  if (!(await hubReady())) return text({ status: 'hub_unavailable', tool_call_verified: false });
   const bound = bindingForTier(tier ?? sessionConfig.default_tier);
   return text(await hub.probe({ provider: provider?.trim() || bound.provider, model: model?.trim() || bound.model }));
 });
@@ -264,6 +328,9 @@ server.registerTool('dsh_worker_config', {
     pro_provider: z.string().optional().describe('LLM provider route the pro tier dispatches to. Same rules as flash_provider.'),
     pro_model: z.string().optional().describe('Model id for the pro tier. Empty string restores the default.'),
     origin_depth_limit: z.number().int().min(1).max(32).optional().describe('Max worker→worker origin-chain depth (default 3). Deeper dispatches are refused to stop recursive self-amplification; raise only for deliberate deep delegation.'),
+    question_policy: z.enum(['ask', 'handoff']).optional().describe('How a worker\'s user question is handled. ask (default) parks it as needs_input and keeps the session alive until dsh_worker_message answers it; handoff returns it as an unattended failure (legacy behaviour).'),
+    idle_ttl_seconds: z.number().int().positive().max(86400).optional().describe('How long a hub worker may sit idle before it is expired (default 1800).'),
+    question_timeout_seconds: z.number().int().positive().max(86400).optional().describe('How long a parked question may wait for dsh_worker_message before the worker fails with QUESTION_TIMEOUT (default 900).'),
     reset: z.boolean().optional().describe('true = restore all defaults first'),
   },
 }, async ({ reset, ...patch }) => {
@@ -272,7 +339,7 @@ server.registerTool('dsh_worker_config', {
     sessionConfig.origin_depth_limit = DEFAULT_ORIGIN_DEPTH_LIMIT;
   }
   for (const [k, v] of Object.entries(patch)) if (v !== undefined) sessionConfig[k] = v;
-  const reachable = await hubAvailable();
+  const reachable = await hubReady();
   // Only the hub can enumerate the host's LLM routes (this process has no
   // ctx.llm), so in standalone mode the list is honestly absent rather than
   // empty — "we cannot see them" is not "there are none".
@@ -323,7 +390,7 @@ server.registerTool('dsh_spawn_worker', {
     if (!origin.ok) return originRefusal(origin);
     try {
       const job = await startCliJob({ worker, task, cwd: workDir, source: ORCHESTRATOR, effort, origin: origin.origin, allowConcurrentCwd: !!allow_concurrent_cwd });
-      return text(jobView(job));
+      return text(statusPayload(jobView(job)));
     } catch (err) {
       if (err instanceof CwdLockError) return text({ error: err.message, rejected_by: 'cwd-lock', holder: err.holder });
       throw err;
@@ -343,7 +410,7 @@ server.registerTool('dsh_spawn_worker', {
     }
     let spawned;
     try {
-      spawned = await hub.spawn({ task, tier: t, effort: e, cwd: workDir, source: ORCHESTRATOR, preset: presetForTier(t), ...bindingForTier(t), origin_chain: origin.origin.chain, origin_depth: origin.origin.depth });
+      spawned = await hub.spawn({ task, tier: t, effort: e, cwd: workDir, source: ORCHESTRATOR, preset: presetForTier(t), ...bindingForTier(t), question_policy: sessionConfig.question_policy, idle_ttl_seconds: sessionConfig.idle_ttl_seconds, question_timeout_seconds: sessionConfig.question_timeout_seconds, origin_chain: origin.origin.chain, origin_depth: origin.origin.depth });
       updateCwdLockHolder({ cwd: workDir, jobId: spawned.id });
       hubOrigins.set(spawned.id, origin.origin);
     } catch (err) {
@@ -351,13 +418,13 @@ server.registerTool('dsh_spawn_worker', {
       throw err;
     }
     attachOrigin(spawned, spawned.id);
-    return text(spawned);
+    return text(statusPayload(spawned));
   }
   const origin = extendOrigin({ inherited: INHERITED_ORIGIN, backend: 'standalone', cwd: workDir, source: ORCHESTRATOR, depthLimit });
   if (!origin.ok) return originRefusal(origin);
   try {
     const job = await startJob({ task, tier: t, effort: e, cwd: workDir, source: ORCHESTRATOR, origin: origin.origin, allowConcurrentCwd: !!allow_concurrent_cwd, ...bindingForTier(t) });
-    return text(jobView(job));
+    return text(statusPayload(jobView(job)));
   } catch (err) {
     if (err instanceof CwdLockError) return text({ error: err.message, rejected_by: 'cwd-lock', holder: err.holder });
     throw err;
@@ -366,10 +433,10 @@ server.registerTool('dsh_spawn_worker', {
 
 server.registerTool('dsh_worker_status', {
   title: 'DSH worker status',
-  description: 'List all DSH worker jobs in this session with live progress (turn/step, current tool, token usage) plus the cwd advisory locks (kind: "cwd-lock" entries show which workspace is held by which running job). Use it before dispatching into a busy workspace and to see whether spawned jobs are still running.',
+  description: 'List all DSH worker jobs in this session with live progress (turn/step, current tool, token usage) plus the cwd advisory locks (kind: "cwd-lock" entries show which workspace is held by which running job). Each job entry includes turn, currentTool, pendingQuestions and lastEventAt. Use it before dispatching into a busy workspace and to see whether spawned jobs are still running.',
   inputSchema: {},
 }, async () => {
-  const hubUp = await hubAvailable();
+  const hubUp = await hubReady();
   const remote = hubUp ? await hub.list().catch(() => null) : [];
   const remoteJobs = remote ?? [];
   if (remote !== null) {
@@ -380,7 +447,7 @@ server.registerTool('dsh_worker_status', {
     for (const l of getCwdLocks()) {
       if (l.holder.mode !== 'hub') continue;
       const j = byId.get(l.holder.jobId);
-      if (j === undefined || j.status !== 'running') releaseCwdLockByJobId(l.holder.jobId);
+      if (j === undefined || isTerminalJobStatus(j.status)) releaseCwdLockByJobId(l.holder.jobId);
     }
   }
   for (const j of remoteJobs) attachOrigin(j, j.id);
@@ -392,29 +459,100 @@ server.registerTool('dsh_worker_status', {
     holder: l.holder,
     note: 'advisory workspace lock: a running worker holds this cwd, so a new dispatch to it is refused (unless allow_concurrent_cwd is set)',
   }));
-  return text([...remoteJobs, ...local, ...locks]);
+  return text([...remoteJobs, ...local, ...locks].map(statusPayload));
 });
 
 server.registerTool('dsh_worker_result', {
   title: 'DSH worker result',
-  description: 'Fetch the final result of a worker job, optionally waiting up to wait_seconds. Always call this for spawned jobs: the dsh_spawn_worker response returns only the job id and status claims, never the result. If a result seems missing or stale (for example after a hub restart orphaned the job), verify against the working tree and dsh_worker_status instead of trusting the summary.',
+  description: 'Fetch the final result of a worker job, optionally waiting up to wait_seconds. Returns {status, turns, result, pendingQuestions}: turns is always an array of turn records (empty for one-shot standalone/CLI jobs), and pendingQuestions is always an array of parked question details. Always call this for spawned jobs: the dsh_spawn_worker response returns only the job id and status claims, never the result. If a result seems missing or stale (for example after a hub restart orphaned the job), verify against the working tree and dsh_worker_status instead of trusting the summary.',
   inputSchema: {
     job_id: z.string(),
     wait_seconds: z.number().int().min(0).max(7200).default(0).describe('0 = return current state immediately'),
   },
 }, async ({ job_id, wait_seconds }) => {
   if (job_id.startsWith('hub-')) {
-    if (!(await hubAvailable())) return text({ error: 'hub not reachable' });
+    if (!(await hubReady())) return text({ error: 'hub not reachable' });
     const view = await hub.get(job_id, wait_seconds).catch((e) => ({ error: e.message }));
     if (view && view.id) {
       attachOrigin(view, view.id);
-      if (view.status !== 'running') releaseCwdLockByJobId(job_id);
+      if (isTerminalJobStatus(view.status)) releaseCwdLockByJobId(job_id);
+      return text(resultPayload(view));
     }
     return text(view);
   }
   if (!getJob(job_id)) return text({ error: `no such job: ${job_id}` });
   const job = await waitJob(job_id, wait_seconds > 0 ? wait_seconds * 1000 : 1);
-  return text(jobView(job, { withResult: true }));
+  return text(resultPayload(jobView(job, { withResult: true })));
+});
+
+server.registerTool('dsh_worker_message', {
+  title: 'Message a DSH worker',
+  description: 'Continue a DSH worker session without starting a new task: a follow-up on an idle/done/failed worker, a steer for a running one, or the answer to a parked question. When the job status is needs_input, the message is routed to /answer and the same turn resumes; otherwise it enters the worker as a new turn (mode: auto = steer while running, followup when idle, resume when done/failed; steer and followup are explicit overrides). Use this instead of re-dispatching a task when the user is answering a worker question or refining its work.',
+  inputSchema: {
+    id: z.string().describe('Job id returned by dsh_spawn_worker / dsh_run_worker (hub ids start with "hub-")'),
+    message: z.string().describe('The follow-up, steer instruction, or answer to the pending question'),
+    mode: z.enum(['auto', 'steer', 'followup']).optional().describe('How to deliver the message to a running/idle worker. Default auto. Ignored when the job is needs_input (it is treated as the answer).'),
+  },
+}, async ({ id, message, mode }) => {
+  if (!message || !message.trim()) return text({ error: 'message must be a non-empty string' });
+  if (id.startsWith('hub-')) {
+    if (!(await hubReady())) return text({ error: 'hub not reachable' });
+    try {
+      const current = await hub.get(id, 0);
+      if (!current || !current.id) return text(current ?? { error: `no such job: ${id}` });
+      if (current.status === 'needs_input' && (current.pendingQuestions ?? 0) > 0) {
+        const answered = await hub.answer(id, [{ answer: message }]);
+        const job = answered?.job ?? current;
+        const remaining = Number(job?.pendingQuestions ?? 0);
+        return text({
+          action: 'answered',
+          answered: answered?.answered ?? [],
+          job: statusPayload(job),
+          ...(remaining > 0 ? { note: `${remaining} more question(s) still pending; send another dsh_worker_message to answer them.` } : {}),
+        });
+      }
+      const sent = await hub.message(id, message, mode);
+      return text({ action: sent?.action ?? 'message', ...(sent?.note ? { note: sent.note } : {}), job: sent?.job ? statusPayload(sent.job) : sent?.job });
+    } catch (err) {
+      return text(hubErrorPayload(err));
+    }
+  }
+  const job = getJob(id);
+  if (!job) return text({ error: `no such job: ${id}` });
+  return text({
+    error: `job ${id} is a standalone worker (${job.status}); standalone sessions are one-shot. Dispatch a new task instead.`,
+    job_id: id,
+    status: job.status,
+  });
+});
+
+server.registerTool('dsh_worker_events', {
+  title: 'DSH worker events',
+  description: 'Read the hub worker event ring buffer (seq/ts/type/data) for one job, optionally after a sequence number. Poll this for live progress without fetching the full result. Returns events, next (pass it as since next time), latest, and status; standalone/CLI jobs do not expose an event buffer and return an empty list.',
+  inputSchema: {
+    id: z.string().describe('Hub job id (starts with "hub-")'),
+    since: z.number().int().min(0).default(0).describe('Return events with seq > since (default 0 = from the oldest retained event)'),
+  },
+}, async ({ id, since }) => {
+  if (id.startsWith('hub-')) {
+    if (!(await hubReady())) return text({ error: 'hub not reachable' });
+    try {
+      const got = await hub.events(id, since);
+      return text({ id, ...got });
+    } catch (err) {
+      return text(hubErrorPayload(err));
+    }
+  }
+  const job = getJob(id);
+  if (!job) return text({ error: `no such job: ${id}` });
+  return text({
+    id,
+    status: job.status,
+    events: [],
+    next: since,
+    latest: 0,
+    note: 'standalone/CLI jobs do not expose an event ring buffer; poll dsh_worker_result instead.',
+  });
 });
 
 server.registerTool('dsh_worker_cancel', {
@@ -423,16 +561,24 @@ server.registerTool('dsh_worker_cancel', {
   inputSchema: { job_id: z.string() },
 }, async ({ job_id }) => {
   if (job_id.startsWith('hub-')) {
-    if (!(await hubAvailable())) return text({ error: 'hub not reachable' });
+    if (!(await hubReady())) return text({ error: 'hub not reachable' });
     const view = await hub.cancel(job_id).catch((e) => ({ error: e.message }));
     if (view && view.id) {
       attachOrigin(view, view.id);
       releaseCwdLockByJobId(job_id); // cancelled = holder being disposed
     }
-    return text(view);
+    return text(statusPayload(view));
   }
   if (!getJob(job_id)) return text({ error: `no such job: ${job_id}` });
-  return text(jobView(await cancelJob(job_id), { withResult: true }));
+  return text(statusPayload(jobView(await cancelJob(job_id), { withResult: true })));
 });
 
-await server.connect(new StdioServerTransport());
+return server;
+}
+
+// Only auto-start the stdio transport when this file is executed as the MCP
+// server entrypoint. Importing it (tests, tooling) must not touch stdio.
+const invokedDirectly = process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url;
+if (invokedDirectly) {
+  await createServer().connect(new StdioServerTransport());
+}

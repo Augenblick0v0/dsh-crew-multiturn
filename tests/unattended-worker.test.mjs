@@ -1,12 +1,10 @@
-// A hub worker must not wait on ask_user_question (#13).
+// A hub worker must not wait on ask_user_question (#13) under the handoff
+// policy.
 //
-// A hub worker is a runtime root in DSH, so the host lets it ask the human,
-// and the Web answerer holds the question until someone answers it in that
-// session. Nobody watches a worker session, so the tool call blocked until
-// the orchestrator gave up. The hub now claims the worker's own requests and
-// rejects them. That was checked end to end against DSH 0.1.5 with a
-// scripted model: the worker gets the error and finishes, and an ordinary
-// session in the same host still shows the question card.
+// T05 makes `ask` the default: the hub parks the request until /answer. The
+// upstream unattended behavior is still selectable as `handoff` — the worker
+// gets the error and finishes, and an ordinary session in the same host still
+// shows the question card.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -15,6 +13,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { unattendedQuestion } from '../src/hub/index.mjs';
+import { installWorkerQuestionHandoff } from '../src/worker-question.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const hub = readFileSync(join(root, 'src/hub/index.mjs'), 'utf8');
@@ -35,4 +34,33 @@ test('the worker claims its questions ahead of the Web answerer', () => {
   // with it), and prepended, so it runs before any answerer that would
   // otherwise hold the question.
   assert.ok(hub.includes('installWorkerQuestionHandoff(agentCtx, job'));
+});
+
+test('handoff still stops the worker instead of waiting for an answer', async () => {
+  let handler;
+  let disposed = 0;
+  const agentCtx = {
+    on(name, fn, prepend) {
+      assert.equal(name, 'user-questions/request');
+      assert.equal(prepend, true);
+      handler = fn;
+    },
+  };
+  const job = {
+    status: 'running',
+    questions: undefined,
+    pendingQuestions: [],
+    result: null,
+    error: null,
+    handle: { dispose() { disposed += 1; } },
+  };
+  installWorkerQuestionHandoff(agentCtx, job, () => {}, { question_policy: 'handoff' });
+
+  await assert.rejects(
+    handler({ questions: [{ id: 'q', question: 'May I overwrite the file?' }] }),
+    (error) => error.name === 'UserQuestionError' && error.code === 'UNATTENDED_WORKER',
+  );
+  assert.equal(disposed, 1, 'handoff still disposes the unattended runtime');
+  assert.equal(job.status, 'needs_input');
+  assert.equal(job.pendingQuestions.length, 0, 'handoff never parks the request');
 });

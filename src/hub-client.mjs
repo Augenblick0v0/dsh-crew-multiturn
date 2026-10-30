@@ -22,10 +22,22 @@ export async function hubAvailable() {
   return lastProbe.ok;
 }
 
+export class HubRequestError extends Error {
+  constructor(message, { status, body } = {}) {
+    super(message);
+    this.name = 'HubRequestError';
+    this.status = status;
+    this.body = body;
+  }
+}
+
 async function call(path, init) {
   const res = await fetch(`${API}${path}`, init);
-  const body = await res.json();
-  if (!res.ok || body.ok === false) throw new Error(body.error ?? `hub request failed (${res.status})`);
+  let body;
+  try { body = await res.json(); } catch { body = {}; }
+  if (!res.ok || body?.ok === false) {
+    throw new HubRequestError(body?.error ?? `hub request failed (${res.status})`, { status: res.status, body });
+  }
   return body;
 }
 
@@ -68,5 +80,22 @@ export const hub = {
       if (job.status !== 'running' || waitSeconds <= 0 || Date.now() >= deadline) return job;
     }
   },
-  cancel: (id) => call(`/jobs/${id}/cancel`, { method: 'POST' }).then((b) => b.job),
+  cancel: (id) => call(`/jobs/${encodeURIComponent(id)}/cancel`, { method: 'POST' }).then((b) => b.job),
+  // Continue a worker session: a follow-up on idle/done, a steer on a running
+  // one, or (when the job is needs_input) use answer() to resolve the parked
+  // question and resume the same turn.
+  message: (id, message, mode) => call(`/jobs/${encodeURIComponent(id)}/message`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ message, ...(mode ? { mode } : {}) }),
+  }).then((b) => ({ action: b.action, note: b.note, job: b.job })),
+  answer: (id, answers) => call(`/jobs/${encodeURIComponent(id)}/answer`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ answers }),
+  }).then((b) => ({ answered: b.answered ?? [], job: b.job })),
+  events: (id, since = 0) => call(`/jobs/${encodeURIComponent(id)}/events?since=${encodeURIComponent(since)}`).then((b) => {
+    const { ok, ...rest } = b;
+    return rest;
+  }),
 };

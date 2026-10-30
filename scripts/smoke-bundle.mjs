@@ -28,6 +28,8 @@ const EXPECTED_TOOLS = [
   'dsh_worker_status',
   'dsh_worker_result',
   'dsh_worker_cancel',
+  'dsh_worker_message',
+  'dsh_worker_events',
 ];
 
 function fail(msg) {

@@ -2,7 +2,7 @@
 // global worker configuration, and the live jobs table.
 // Talks only to the plugin's own loopback routes.
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 
 import { reconcileGhosts, displayJobs, groupJobs, workspaceKey, basenameOf, abbrevPath, workspaceLocks, lockBadgeOf, statusInfoOf, ghostPidOf, procBadgeOf, dueProcProbes } from './jobs-view';
@@ -133,7 +133,11 @@ const COPY = {
     cardCustomProv: { t: '自定义 Provider', d: '接入自己的 API 或本地命令；保存后会出现在上面的视觉 / 生图 provider 选择里。' },
     modeDesc: { auto: 'auto · 优先 hub', hub: 'hub · 必须 hub', standalone: 'standalone · 独立进程' },
     save: '保存', saved: '已保存', jobs: 'Worker 任务', empty: '当前没有 worker 任务。',
-    statusRunning: '运行中', statusStalled: '疑似卡住', statusNeedsInput: '需输入', statusDone: '完成', statusFailed: '失败', statusCancelled: '已取消', statusOrphaned: '失联',
+    detailSession: '会话', detailTurns: '轮次', detailEvents: '事件', detailLoading: '加载中…', detailToggle: '展开/收起任务详情',
+    detailNoTurns: '暂无轮次记录', detailNoEvents: '暂无事件', detailEventTail: '事件尾部',
+    detailUnavailable: '无法读取该任务详情（可能属于其他实例或已结束）',
+    detailTurn: '轮次', detailPrompt: '输入', detailStop: '结束原因', detailUsage: 'tokens ⇅', detailTime: '耗时',
+    statusRunning: '运行中', statusStalled: '疑似卡住', statusNeedsInput: '需输入', statusDone: '完成', statusIdle: '空闲', statusExpired: '已过期', statusFailed: '失败', statusCancelled: '已取消', statusOrphaned: '失联',
     statusTitle: (s: string) => `状态：${s}`,
     orphanWriterGone: (origin: string) => `所属实例已消失：写入该状态的进程（${origin}）已不存在，任务随它一起终止（最后状态 running）`,
     orphanVanished: (ago: string) => `任务从状态源消失（最后状态 running，${ago} 前最后一次见到）。很可能随所属实例退出而死亡；如果它其实在两次刷新间正常结束了，可点 × 清除`,
@@ -225,7 +229,11 @@ const COPY = {
     cardCustomProv: { t: 'Custom providers', d: 'Bring your own API or local command; saved providers appear in the vision / image-gen selects above.' },
     modeDesc: { auto: 'auto · prefer hub', hub: 'hub · require hub', standalone: 'standalone' },
     save: 'Save', saved: 'Saved', jobs: 'Worker jobs', empty: 'No worker jobs yet.',
-    statusRunning: 'running', statusStalled: 'stalled', statusNeedsInput: 'needs input', statusDone: 'done', statusFailed: 'failed', statusCancelled: 'cancelled', statusOrphaned: 'orphaned',
+    detailSession: 'session', detailTurns: 'turns', detailEvents: 'events', detailLoading: 'loading…', detailToggle: 'Show/hide job details',
+    detailNoTurns: 'No turns yet', detailNoEvents: 'No events yet', detailEventTail: 'Event tail',
+    detailUnavailable: 'Details unavailable (job may belong to another instance or have ended)',
+    detailTurn: 'turn', detailPrompt: 'prompt', detailStop: 'stop', detailUsage: 'tokens ⇅', detailTime: 'elapsed',
+    statusRunning: 'running', statusStalled: 'stalled', statusNeedsInput: 'needs input', statusDone: 'done', statusIdle: 'idle', statusExpired: 'expired', statusFailed: 'failed', statusCancelled: 'cancelled', statusOrphaned: 'orphaned',
     statusTitle: (s: string) => `status: ${s}`,
     orphanWriterGone: (origin: string) => `Owning instance gone: the process that wrote this status (${origin}) no longer exists — the job died with it (last status: running)`,
     orphanVanished: (ago: string) => `Vanished from the status feed while running (last seen ${ago} ago). Likely died with its owning instance; if it actually finished between refreshes, dismiss it with ×`,
@@ -368,6 +376,111 @@ function elapsed(startedAt: string, endedAt?: string | null) {
   return s >= 60 ? `${Math.floor(s / 60)}m${s % 60}s` : `${s}s`;
 }
 function ktok(n: number) { return n >= 1000 ? `${Math.round(n / 100) / 10}k` : `${n}`; }
+function clockOf(iso?: string | null) {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '-' : d.toLocaleTimeString([], { hour12: false });
+}
+
+/**
+ * C03 job detail: the turn records plus the event tail, fetched lazily when a
+ * row is expanded. Polling uses the `since` cursor so an open detail only
+ * transfers new events; `turnRecords` comes from GET /jobs/:id.
+ */
+function JobDetail({ job, get, copy }: { job: any; get: (path: string) => Promise<any>; copy: any }) {
+  const [detail, setDetail] = useState<any>(null);
+  const [events, setEvents] = useState<any[]>([]);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const cursor = useRef(0);
+
+  const load = useCallback(async () => {
+    const id = encodeURIComponent(job.id);
+    const [d, e] = await Promise.allSettled([
+      get(`/jobs/${id}`),
+      get(`/jobs/${id}/events?since=${cursor.current}`),
+    ]);
+    if (d.status === 'fulfilled' && d.value?.ok !== false) setDetail(d.value?.job ?? d.value);
+    if (e.status === 'fulfilled' && e.value?.ok !== false) {
+      const fresh: any[] = e.value?.events ?? [];
+      if (fresh.length > 0) {
+        setEvents((prev) => {
+          const seen = new Set(prev.map((x) => x.seq));
+          return [...prev, ...fresh.filter((x) => !seen.has(x.seq))].slice(-500);
+        });
+      }
+      if (typeof e.value?.next === 'number') cursor.current = Math.max(cursor.current, e.value.next);
+    }
+    setError(d.status === 'rejected' ? String(d.reason?.message ?? d.reason) : '');
+    setLoading(false);
+  }, [get, job.id]);
+
+  useEffect(() => {
+    cursor.current = 0;
+    setEvents([]); setDetail(null); setError(''); setLoading(true);
+    void load();
+    const timer = setInterval(() => { void load(); }, 2500);
+    return () => clearInterval(timer);
+  }, [load]);
+
+  const turns: any[] = detail?.turnRecords ?? [];
+  const recent = events.slice(-20);
+  return (
+    <div style={{ padding: '8px 10px 12px', display: 'flex', flexDirection: 'column', gap: 9, background: 'rgba(128,128,128,0.045)' }}>
+      <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', fontSize: 11.5 }}>
+        <span style={S.mono}>{copy.detailSession}: {detail?.sessionId ?? job.sessionId ?? '-'}</span>
+        <span style={{ opacity: 0.6 }}>{copy.detailTurns} {turns.length} · {copy.detailEvents} {events.length}</span>
+        {loading && <span style={{ opacity: 0.5 }}>{copy.detailLoading}</span>}
+      </div>
+      {error !== '' && <div style={{ color: '#d29922', fontSize: 11.5 }}>{copy.detailUnavailable} ({error})</div>}
+      {turns.length === 0 ? (
+        <div style={{ opacity: 0.55, fontSize: 12 }}>{copy.detailNoTurns}</div>
+      ) : (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ borderCollapse: 'collapse', width: '100%', tableLayout: 'fixed', minWidth: 620 }}>
+            <colgroup>
+              <col style={{ width: 40 }} /><col /><col style={{ width: 90 }} />
+              <col style={{ width: 100 }} /><col style={{ width: 130 }} />
+            </colgroup>
+            <thead><tr>
+              {[copy.detailTurn, copy.detailPrompt, copy.detailStop, copy.detailUsage, copy.detailTime].map((h) => (
+                <th key={h} style={{ ...S.tight, fontSize: 10.5, opacity: 0.5, fontWeight: 500 }}>{h}</th>
+              ))}
+            </tr></thead>
+            <tbody>
+              {turns.map((t: any) => (
+                <tr key={t.index}>
+                  <td style={{ ...S.tight, ...S.mono }}>{t.index}</td>
+                  <td style={{ ...S.tight, whiteSpace: 'normal', fontSize: 11.5 }} title={t.textPreview || t.prompt}>{t.prompt || '-'}</td>
+                  <td style={{ ...S.tight, ...S.mono, fontSize: 11 }}>{t.stopReason ?? '-'}</td>
+                  <td style={{ ...S.tight, ...S.mono, fontSize: 11 }}>{t.usage ? `${ktok(t.usage.input)}/${ktok(t.usage.output)}` : '-'}</td>
+                  <td style={{ ...S.tight, ...S.mono, fontSize: 11 }}>{elapsed(t.startedAt, t.endedAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <div>
+        <div style={{ fontSize: 11, opacity: 0.55, marginBottom: 3 }}>{copy.detailEventTail}</div>
+        {recent.length === 0 ? (
+          <div style={{ opacity: 0.5, fontSize: 12 }}>{copy.detailNoEvents}</div>
+        ) : (
+          <div style={{ maxHeight: 170, overflowY: 'auto', border: '1px solid rgba(128,128,128,0.14)', borderRadius: 6, padding: '4px 8px' }}>
+            {recent.map((e: any) => (
+              <div key={e.seq} style={{ display: 'flex', gap: 8, fontSize: 11.5, lineHeight: 1.7, minWidth: 0 }}>
+                <span style={{ ...S.mono, fontSize: 10.5, opacity: 0.45, flexShrink: 0 }}>{e.seq}</span>
+                <span style={{ ...S.mono, fontSize: 10.5, opacity: 0.5, flexShrink: 0 }}>{clockOf(e.ts)}</span>
+                <span style={{ color: '#58a6ff', flexShrink: 0 }}>{e.type}</span>
+                <span style={{ opacity: 0.7, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.summary ?? ''}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function WorkersPanel({ ctx }: { ctx: any }) {
   const locale = useSyncExternalStore(
@@ -379,6 +492,7 @@ function WorkersPanel({ ctx }: { ctx: any }) {
 
   const [jobs, setJobs] = useState<any[]>([]); // live snapshot from /jobs
   const [ghosts, setGhosts] = useState<Record<string, any>>(() => readGhosts());
+  const [expandedJob, setExpandedJob] = useState<string | null>(null); // C03: inline job detail
 
   // WPC14: proc-alive probe results for pid-carrying ghost tombstones, keyed
   // by job id. alive: null = probe failed / hub unreachable - it must never
@@ -711,9 +825,15 @@ function WorkersPanel({ ctx }: { ctx: any }) {
     const ghostRow = !!ghosts[job.id] && !jobs.some((l) => l?.id === job.id);
     const info = statusInfoOf(job, copy);
     const pb = procBadgeOf(job, procProbe[job.id]);
+    const expanded = expandedJob === job.id;
     return (
-      <tr key={job.id} style={job.status === 'orphaned' ? { background: 'rgba(240,136,62,0.05)' } : undefined}>
-        <td style={{ ...S.tight, ...S.mono }} title={job.origin ? `${job.id} · ${job.origin}` : job.id}>{String(job.id).replace(/-[a-z0-9]+$/, '')}</td>
+      <Fragment key={job.id}>
+        <tr onClick={() => setExpandedJob(expanded ? null : job.id)} title={copy.detailToggle}
+          style={{ cursor: 'pointer', ...(job.status === 'orphaned' ? { background: 'rgba(240,136,62,0.05)' } : {}) }}>
+        <td style={{ ...S.tight, ...S.mono }} title={job.origin ? `${job.id} · ${job.origin}` : job.id}>
+          <span aria-hidden="true" style={{ opacity: 0.55, marginRight: 3 }}>{expanded ? '▾' : '▸'}</span>
+          {String(job.id).replace(/-[a-z0-9]+$/, '')}
+        </td>
         <td style={S.tight}><span style={S.chip(job.source === 'claude-code' || job.source === 'codex')}>{sourceLabel(job.source)}</span></td>
         <td style={S.tight} title={job.profile ? `profile: ${job.profile} · backend: ${job.backend}` : undefined}>{job.tier}/{job.effort}</td>
         <td style={{ ...S.tight, minWidth: 82 }}>
@@ -724,7 +844,7 @@ function WorkersPanel({ ctx }: { ctx: any }) {
             {ghostRow && (
               <button type="button" title={copy.orphanDismiss} aria-label={copy.orphanDismiss}
                 style={{ border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer', fontSize: 12, padding: 0, opacity: 0.55, lineHeight: 1 }}
-                onClick={() => dismissGhost(job.id)}>×</button>
+                onClick={(e: any) => { e.stopPropagation(); dismissGhost(job.id); }}>×</button>
             )}
           </div>
         </td>
@@ -764,7 +884,15 @@ function WorkersPanel({ ctx }: { ctx: any }) {
             )}
           </div>
         </td>
-      </tr>
+        </tr>
+        {expanded && (
+          <tr>
+            <td colSpan={7} style={{ padding: 0, borderBottom: '1px solid rgba(128,128,128,0.16)' }}>
+              <JobDetail job={job} get={get} copy={copy} />
+            </td>
+          </tr>
+        )}
+      </Fragment>
     );
   };
 

@@ -164,6 +164,8 @@ export function statusInfoOf(job: any, copy: any): { color: string; label: strin
     return { color: '#4a9eff', label: copy.statusRunning, title: copy.statusTitle(st) };
   }
   if (st === 'done') return { color: '#3fb950', label: copy.statusDone, title: copy.statusTitle(st) };
+  if (st === 'idle') return { color: '#3fb950', label: copy.statusIdle, title: copy.statusTitle(st) };
+  if (st === 'expired') return { color: '#8b949e', label: copy.statusExpired, title: copy.statusTitle(st) };
   if (st === 'needs_input') return { color: '#d29922', label: copy.statusNeedsInput, title: copy.statusNeedsInput };
   if (st === 'cancelled') return { color: '#f85149', label: copy.statusCancelled, title: copy.statusTitle(st) };
   return { color: '#f85149', label: copy.statusFailed, title: copy.statusTitle(st ?? '?') };

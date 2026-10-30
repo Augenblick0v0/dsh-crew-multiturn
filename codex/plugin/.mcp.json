@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "dsh-crew": {
+      "command": "node",
+      "args": [
+        "/root/dsh-crew/src/server.mjs"
+      ]
+    }
+  }
+}

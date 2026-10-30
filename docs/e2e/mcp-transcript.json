@@ -1,0 +1,1669 @@
+{
+  "run_id": "t09-2026-10-30T20-11-50-950Z",
+  "started_at": "2026-10-30T20:11:50.950Z",
+  "hub_url": "http://127.0.0.1:3099",
+  "work_dir": "/tmp/t09-worker-workspace",
+  "mcp_server": "/root/dsh-crew/src/server.mjs",
+  "node": "v22.23.4",
+  "calls": [
+    {
+      "at": "2026-10-30T20:11:51.123Z",
+      "tool": "mcp_connect",
+      "ms": 152,
+      "server": "/root/dsh-crew/src/server.mjs",
+      "hub": "http://127.0.0.1:3099"
+    },
+    {
+      "at": "2026-10-30T20:11:51.128Z",
+      "tool": "tools/list",
+      "ms": 5,
+      "count": 9,
+      "names": [
+        "dsh_run_worker",
+        "dsh_worker_probe",
+        "dsh_worker_config",
+        "dsh_spawn_worker",
+        "dsh_worker_status",
+        "dsh_worker_result",
+        "dsh_worker_message",
+        "dsh_worker_events",
+        "dsh_worker_cancel"
+      ]
+    },
+    {
+      "at": "2026-10-30T20:11:51.169Z",
+      "tool": "dsh_worker_config",
+      "args": {
+        "mode": "hub",
+        "preset_flash": "standard",
+        "question_policy": "ask",
+        "default_timeout_seconds": 600,
+        "idle_ttl_seconds": 1800,
+        "question_timeout_seconds": 300
+      },
+      "ms": 41,
+      "isError": false,
+      "text": "{\n  \"enabled\": true,\n  \"default_tier\": \"flash\",\n  \"default_effort\": \"max\",\n  \"mode\": \"hub\",\n  \"default_timeout_seconds\": 600,\n  \"tier_policy\": \"auto\",\n  \"escalate_on_failure\": false,\n  \"preset_flash\": \"standard\",\n  \"preset_pro\": \"default\",\n  \"flash_provider\": \"\",\n  \"flash_model\": \"\",\n  \"pro_provider\": \"\",\n  \"pro_model\": \"\",\n  \"origin_depth_limit\": 3,\n  \"question_policy\": \"ask\",\n  \"idle_ttl_seconds\": 1800,\n  \"question_timeout_seconds\": 300,\n  \"hub_reachable\": true,\n  \"bindings\": {\n    \"flash\": {\n      \"provider\": \"deepseek-official\",\n      \"model\": \"deepseek-v4-flash\",\n      \"custom\": false\n    },\n    \"pro\": {\n      \"provider\": \"deepseek-official\",\n      \"model\": \"deepseek-v4-pro\",\n      \"custom\": false\n    }\n  },\n  \"available_providers\": [\n    {\n      \"id\": \"deepseek-official\",\n      \"name\": \"DeepSeek\"\n    },\n    {\n      \"id\": \"deepseek-account\",\n      \"name\": \"DeepSeek Account\"\n    },\n    {\n      \"id\": \"deepseek-vision\",\n      \"name\": \"DeepSeek (Vision)\"\n    }\n  ],\n  \"worker_profiles\": [\n    {\n      \"name\": \"agy\",\n      \"backend\": \"agy\",\n      \"label\": \"Agy (Antigravity CLI) — CLI default model\",\n      \"model\": null,\n      \"effort\": null,\n      \"permission\": \"--dangerously-skip-permissions + --mode accept-edits (FULL approval: auto-approves all tool permission requests; agy 1.1.16 offers no workspace-scoped permission mode)\",\n      \"cli\": \"agy\"\n    },\n    {\n      \"name\": \"grok\",\n      \"backend\": \"grok\",\n      \"label\": \"Grok (grok-4.5)\",\n      \"model\": \"grok-4.5\",\n      \"effort\": null,\n      \"permission\": \"--permission-mode bypassPermissions (always-approve; docs.x.ai recommends always-approve for headless automation; deny rules/hooks still apply)\",\n      \"cli\": \"grok\"\n    }\n  ],\n  \"origin\": {\n    \"chain\": [],\n    \"depth\": 0,\n    \"depth_limit\": 3\n  }\n}",
+      "json": {
+        "enabled": true,
+        "default_tier": "flash",
+        "default_effort": "max",
+        "mode": "hub",
+        "default_timeout_seconds": 600,
+        "tier_policy": "auto",
+        "escalate_on_failure": false,
+        "preset_flash": "standard",
+        "preset_pro": "default",
+        "flash_provider": "",
+        "flash_model": "",
+        "pro_provider": "",
+        "pro_model": "",
+        "origin_depth_limit": 3,
+        "question_policy": "ask",
+        "idle_ttl_seconds": 1800,
+        "question_timeout_seconds": 300,
+        "hub_reachable": true,
+        "bindings": {
+          "flash": {
+            "provider": "deepseek-official",
+            "model": "deepseek-v4-flash",
+            "custom": false
+          },
+          "pro": {
+            "provider": "deepseek-official",
+            "model": "deepseek-v4-pro",
+            "custom": false
+          }
+        },
+        "available_providers": [
+          {
+            "id": "deepseek-official",
+            "name": "DeepSeek"
+          },
+          {
+            "id": "deepseek-account",
+            "name": "DeepSeek Account"
+          },
+          {
+            "id": "deepseek-vision",
+            "name": "DeepSeek (Vision)"
+          }
+        ],
+        "worker_profiles": [
+          {
+            "name": "agy",
+            "backend": "agy",
+            "label": "Agy (Antigravity CLI) — CLI default model",
+            "model": null,
+            "effort": null,
+            "permission": "--dangerously-skip-permissions + --mode accept-edits (FULL approval: auto-approves all tool permission requests; agy 1.1.16 offers no workspace-scoped permission mode)",
+            "cli": "agy"
+          },
+          {
+            "name": "grok",
+            "backend": "grok",
+            "label": "Grok (grok-4.5)",
+            "model": "grok-4.5",
+            "effort": null,
+            "permission": "--permission-mode bypassPermissions (always-approve; docs.x.ai recommends always-approve for headless automation; deny rules/hooks still apply)",
+            "cli": "grok"
+          }
+        ],
+        "origin": {
+          "chain": [],
+          "depth": 0,
+          "depth_limit": 3
+        }
+      }
+    },
+    {
+      "at": "2026-10-30T20:11:52.882Z",
+      "tool": "dsh_run_worker",
+      "args": {
+        "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+        "tier": "flash",
+        "effort": "high",
+        "cwd": "/tmp/t09-worker-workspace",
+        "timeout_seconds": 600
+      },
+      "ms": 1713,
+      "isError": false,
+      "text": "{\n  \"id\": \"hub-2-mvverhn1\",\n  \"sessionId\": \"session-7566d1d5-ecff-400b-ab75-8b04b7d135cd\",\n  \"tier\": \"flash\",\n  \"model\": \"deepseek-v4-flash\",\n  \"provider\": \"deepseek-official\",\n  \"effort\": \"high\",\n  \"status\": \"idle\",\n  \"source\": \"node\",\n  \"task\": \"You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.\",\n  \"cwd\": \"/tmp/t09-worker-workspace\",\n  \"turn\": 1,\n  \"step\": 1,\n  \"currentTool\": null,\n  \"toolCalls\": 0,\n  \"tokens\": {\n    \"input\": 176,\n    \"output\": 76,\n    \"reasoning\": 0\n  },\n  \"mode\": \"hub\",\n  \"turns\": 1,\n  \"pendingQuestions\": 0,\n  \"lastEventAt\": \"2026-10-30T20:11:52.867Z\",\n  \"startedAt\": \"2026-10-30T20:11:51.182Z\",\n  \"endedAt\": null,\n  \"capabilities\": {\n    \"resume\": true,\n    \"steer\": true,\n    \"flush\": true\n  },\n  \"result\": \"T09-TURN1-OK\",\n  \"error\": null,\n  \"stopReason\": \"completed\",\n  \"reasonDetail\": {\n    \"kind\": \"completed\"\n  },\n  \"turnRecords\": [\n    {\n      \"index\": 1,\n      \"prompt\": \"You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.\",\n      \"startedAt\": \"2026-10-30T20:11:51.258Z\",\n      \"endedAt\": \"2026-10-30T20:11:52.860Z\",\n      \"stopReason\": \"completed\",\n      \"usage\": {\n        \"input\": 176,\n        \"output\": 76,\n        \"reasoning\": 0\n      },\n      \"textPreview\": \"T09-TURN1-OK\"\n    }\n  ],\n  \"pendingQuestionDetails\": [],\n  \"origin_depth\": 1,\n  \"origin_chain\": [\n    {\n      \"backend\": \"hub\",\n      \"cwd\": \"/tmp/t09-worker-workspace\",\n      \"source\": \"node\"\n    }\n  ]\n}",
+      "json": {
+        "id": "hub-2-mvverhn1",
+        "sessionId": "session-7566d1d5-ecff-400b-ab75-8b04b7d135cd",
+        "tier": "flash",
+        "model": "deepseek-v4-flash",
+        "provider": "deepseek-official",
+        "effort": "high",
+        "status": "idle",
+        "source": "node",
+        "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+        "cwd": "/tmp/t09-worker-workspace",
+        "turn": 1,
+        "step": 1,
+        "currentTool": null,
+        "toolCalls": 0,
+        "tokens": {
+          "input": 176,
+          "output": 76,
+          "reasoning": 0
+        },
+        "mode": "hub",
+        "turns": 1,
+        "pendingQuestions": 0,
+        "lastEventAt": "2026-10-30T20:11:52.867Z",
+        "startedAt": "2026-10-30T20:11:51.182Z",
+        "endedAt": null,
+        "capabilities": {
+          "resume": true,
+          "steer": true,
+          "flush": true
+        },
+        "result": "T09-TURN1-OK",
+        "error": null,
+        "stopReason": "completed",
+        "reasonDetail": {
+          "kind": "completed"
+        },
+        "turnRecords": [
+          {
+            "index": 1,
+            "prompt": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+            "startedAt": "2026-10-30T20:11:51.258Z",
+            "endedAt": "2026-10-30T20:11:52.860Z",
+            "stopReason": "completed",
+            "usage": {
+              "input": 176,
+              "output": 76,
+              "reasoning": 0
+            },
+            "textPreview": "T09-TURN1-OK"
+          }
+        ],
+        "pendingQuestionDetails": [],
+        "origin_depth": 1,
+        "origin_chain": [
+          {
+            "backend": "hub",
+            "cwd": "/tmp/t09-worker-workspace",
+            "source": "node"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-10-30T20:11:52.882Z",
+      "tool": "evidence",
+      "note": "turn 1 job snapshot",
+      "job": {
+        "id": "hub-2-mvverhn1",
+        "sessionId": "session-7566d1d5-ecff-400b-ab75-8b04b7d135cd",
+        "tier": "flash",
+        "model": "deepseek-v4-flash",
+        "provider": "deepseek-official",
+        "effort": "high",
+        "status": "idle",
+        "source": "node",
+        "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+        "cwd": "/tmp/t09-worker-workspace",
+        "turn": 1,
+        "step": 1,
+        "currentTool": null,
+        "toolCalls": 0,
+        "tokens": {
+          "input": 176,
+          "output": 76,
+          "reasoning": 0
+        },
+        "mode": "hub",
+        "turns": 1,
+        "pendingQuestions": 0,
+        "lastEventAt": "2026-10-30T20:11:52.867Z",
+        "startedAt": "2026-10-30T20:11:51.182Z",
+        "endedAt": null,
+        "capabilities": {
+          "resume": true,
+          "steer": true,
+          "flush": true
+        },
+        "result": "T09-TURN1-OK",
+        "error": null,
+        "stopReason": "completed",
+        "reasonDetail": {
+          "kind": "completed"
+        },
+        "turnRecords": [
+          {
+            "index": 1,
+            "prompt": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+            "startedAt": "2026-10-30T20:11:51.258Z",
+            "endedAt": "2026-10-30T20:11:52.860Z",
+            "stopReason": "completed",
+            "usage": {
+              "input": 176,
+              "output": 76,
+              "reasoning": 0
+            },
+            "textPreview": "T09-TURN1-OK"
+          }
+        ],
+        "pendingQuestionDetails": [],
+        "origin_depth": 1,
+        "origin_chain": [
+          {
+            "backend": "hub",
+            "cwd": "/tmp/t09-worker-workspace",
+            "source": "node"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-10-30T20:11:52.890Z",
+      "tool": "dsh_worker_status",
+      "args": {},
+      "ms": 7,
+      "isError": false,
+      "text": "[\n  {\n    \"id\": \"hub-1-mvvejdoo\",\n    \"sessionId\": \"session-0642f662-aaaa-44f6-ade9-0da704d9f291\",\n    \"tier\": \"flash\",\n    \"model\": \"deepseek-v4-flash\",\n    \"provider\": \"deepseek-official\",\n    \"effort\": \"high\",\n    \"status\": \"idle\",\n    \"source\": \"node\",\n    \"task\": \"You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"turn\": 4,\n    \"step\": 2,\n    \"currentTool\": null,\n    \"toolCalls\": 1,\n    \"tokens\": {\n      \"input\": 12146,\n      \"output\": 208,\n      \"reasoning\": 0\n    },\n    \"mode\": \"hub\",\n    \"turns\": 4,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": \"2026-10-30T20:05:40.870Z\",\n    \"startedAt\": \"2026-10-30T20:05:32.808Z\",\n    \"endedAt\": \"2026-10-30T20:05:33.958Z\",\n    \"questions\": [],\n    \"capabilities\": {\n      \"resume\": true,\n      \"steer\": true,\n      \"flush\": true\n    },\n    \"origin\": \"hub-558738\"\n  },\n  {\n    \"id\": \"hub-2-mvverhn1\",\n    \"sessionId\": \"session-7566d1d5-ecff-400b-ab75-8b04b7d135cd\",\n    \"tier\": \"flash\",\n    \"model\": \"deepseek-v4-flash\",\n    \"provider\": \"deepseek-official\",\n    \"effort\": \"high\",\n    \"status\": \"idle\",\n    \"source\": \"node\",\n    \"task\": \"You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"turn\": 1,\n    \"step\": 1,\n    \"currentTool\": null,\n    \"toolCalls\": 0,\n    \"tokens\": {\n      \"input\": 176,\n      \"output\": 76,\n      \"reasoning\": 0\n    },\n    \"mode\": \"hub\",\n    \"turns\": 1,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": \"2026-10-30T20:11:52.867Z\",\n    \"startedAt\": \"2026-10-30T20:11:51.182Z\",\n    \"endedAt\": \"2026-10-30T20:11:52.868Z\",\n    \"capabilities\": {\n      \"resume\": true,\n      \"steer\": true,\n      \"flush\": true\n    },\n    \"origin\": \"hub-558738\",\n    \"origin_depth\": 1,\n    \"origin_chain\": [\n      {\n        \"backend\": \"hub\",\n        \"cwd\": \"/tmp/t09-worker-workspace\",\n        \"source\": \"node\"\n      }\n    ]\n  },\n  {\n    \"kind\": \"cwd-lock\",\n    \"id\": \"cwd-lock-1\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"holder\": {\n      \"jobId\": \"hub-2-mvverhn1\",\n      \"backend\": \"hub\",\n      \"mode\": \"hub\",\n      \"startedAt\": \"2026-10-30T20:11:51.170Z\",\n      \"cwd\": \"/tmp/t09-worker-workspace\"\n    },\n    \"note\": \"advisory workspace lock: a running worker holds this cwd, so a new dispatch to it is refused (unless allow_concurrent_cwd is set)\",\n    \"turns\": 0,\n    \"turn\": 0,\n    \"currentTool\": null,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": null\n  }\n]",
+      "json": [
+        {
+          "id": "hub-1-mvvejdoo",
+          "sessionId": "session-0642f662-aaaa-44f6-ade9-0da704d9f291",
+          "tier": "flash",
+          "model": "deepseek-v4-flash",
+          "provider": "deepseek-official",
+          "effort": "high",
+          "status": "idle",
+          "source": "node",
+          "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+          "cwd": "/tmp/t09-worker-workspace",
+          "turn": 4,
+          "step": 2,
+          "currentTool": null,
+          "toolCalls": 1,
+          "tokens": {
+            "input": 12146,
+            "output": 208,
+            "reasoning": 0
+          },
+          "mode": "hub",
+          "turns": 4,
+          "pendingQuestions": 0,
+          "lastEventAt": "2026-10-30T20:05:40.870Z",
+          "startedAt": "2026-10-30T20:05:32.808Z",
+          "endedAt": "2026-10-30T20:05:33.958Z",
+          "questions": [],
+          "capabilities": {
+            "resume": true,
+            "steer": true,
+            "flush": true
+          },
+          "origin": "hub-558738"
+        },
+        {
+          "id": "hub-2-mvverhn1",
+          "sessionId": "session-7566d1d5-ecff-400b-ab75-8b04b7d135cd",
+          "tier": "flash",
+          "model": "deepseek-v4-flash",
+          "provider": "deepseek-official",
+          "effort": "high",
+          "status": "idle",
+          "source": "node",
+          "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+          "cwd": "/tmp/t09-worker-workspace",
+          "turn": 1,
+          "step": 1,
+          "currentTool": null,
+          "toolCalls": 0,
+          "tokens": {
+            "input": 176,
+            "output": 76,
+            "reasoning": 0
+          },
+          "mode": "hub",
+          "turns": 1,
+          "pendingQuestions": 0,
+          "lastEventAt": "2026-10-30T20:11:52.867Z",
+          "startedAt": "2026-10-30T20:11:51.182Z",
+          "endedAt": "2026-10-30T20:11:52.868Z",
+          "capabilities": {
+            "resume": true,
+            "steer": true,
+            "flush": true
+          },
+          "origin": "hub-558738",
+          "origin_depth": 1,
+          "origin_chain": [
+            {
+              "backend": "hub",
+              "cwd": "/tmp/t09-worker-workspace",
+              "source": "node"
+            }
+          ]
+        },
+        {
+          "kind": "cwd-lock",
+          "id": "cwd-lock-1",
+          "cwd": "/tmp/t09-worker-workspace",
+          "holder": {
+            "jobId": "hub-2-mvverhn1",
+            "backend": "hub",
+            "mode": "hub",
+            "startedAt": "2026-10-30T20:11:51.170Z",
+            "cwd": "/tmp/t09-worker-workspace"
+          },
+          "note": "advisory workspace lock: a running worker holds this cwd, so a new dispatch to it is refused (unless allow_concurrent_cwd is set)",
+          "turns": 0,
+          "turn": 0,
+          "currentTool": null,
+          "pendingQuestions": 0,
+          "lastEventAt": null
+        }
+      ]
+    },
+    {
+      "at": "2026-10-30T20:11:52.898Z",
+      "tool": "dsh_worker_message",
+      "args": {
+        "id": "hub-2-mvverhn1",
+        "message": "Turn 2: reply with exactly T09-TURN2-OK and then stop. Do not use any tools.",
+        "mode": "followup"
+      },
+      "ms": 8,
+      "isError": false,
+      "text": "{\n  \"action\": \"followup\",\n  \"job\": {\n    \"id\": \"hub-2-mvverhn1\",\n    \"sessionId\": \"session-7566d1d5-ecff-400b-ab75-8b04b7d135cd\",\n    \"tier\": \"flash\",\n    \"model\": \"deepseek-v4-flash\",\n    \"provider\": \"deepseek-official\",\n    \"effort\": \"high\",\n    \"status\": \"idle\",\n    \"source\": \"node\",\n    \"task\": \"You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"turn\": 1,\n    \"step\": 1,\n    \"currentTool\": null,\n    \"toolCalls\": 0,\n    \"tokens\": {\n      \"input\": 176,\n      \"output\": 76,\n      \"reasoning\": 0\n    },\n    \"mode\": \"hub\",\n    \"turns\": 1,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": \"2026-10-30T20:11:52.867Z\",\n    \"startedAt\": \"2026-10-30T20:11:51.182Z\",\n    \"endedAt\": \"2026-10-30T20:11:52.868Z\",\n    \"capabilities\": {\n      \"resume\": true,\n      \"steer\": true,\n      \"flush\": true\n    }\n  }\n}",
+      "json": {
+        "action": "followup",
+        "job": {
+          "id": "hub-2-mvverhn1",
+          "sessionId": "session-7566d1d5-ecff-400b-ab75-8b04b7d135cd",
+          "tier": "flash",
+          "model": "deepseek-v4-flash",
+          "provider": "deepseek-official",
+          "effort": "high",
+          "status": "idle",
+          "source": "node",
+          "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+          "cwd": "/tmp/t09-worker-workspace",
+          "turn": 1,
+          "step": 1,
+          "currentTool": null,
+          "toolCalls": 0,
+          "tokens": {
+            "input": 176,
+            "output": 76,
+            "reasoning": 0
+          },
+          "mode": "hub",
+          "turns": 1,
+          "pendingQuestions": 0,
+          "lastEventAt": "2026-10-30T20:11:52.867Z",
+          "startedAt": "2026-10-30T20:11:51.182Z",
+          "endedAt": "2026-10-30T20:11:52.868Z",
+          "capabilities": {
+            "resume": true,
+            "steer": true,
+            "flush": true
+          }
+        }
+      }
+    },
+    {
+      "at": "2026-10-30T20:11:52.898Z",
+      "tool": "evidence",
+      "note": "turn 2 accepted",
+      "sent": {
+        "action": "followup",
+        "job": {
+          "id": "hub-2-mvverhn1",
+          "sessionId": "session-7566d1d5-ecff-400b-ab75-8b04b7d135cd",
+          "tier": "flash",
+          "model": "deepseek-v4-flash",
+          "provider": "deepseek-official",
+          "effort": "high",
+          "status": "idle",
+          "source": "node",
+          "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+          "cwd": "/tmp/t09-worker-workspace",
+          "turn": 1,
+          "step": 1,
+          "currentTool": null,
+          "toolCalls": 0,
+          "tokens": {
+            "input": 176,
+            "output": 76,
+            "reasoning": 0
+          },
+          "mode": "hub",
+          "turns": 1,
+          "pendingQuestions": 0,
+          "lastEventAt": "2026-10-30T20:11:52.867Z",
+          "startedAt": "2026-10-30T20:11:51.182Z",
+          "endedAt": "2026-10-30T20:11:52.868Z",
+          "capabilities": {
+            "resume": true,
+            "steer": true,
+            "flush": true
+          }
+        }
+      }
+    },
+    {
+      "at": "2026-10-30T20:11:52.917Z",
+      "tool": "dsh_worker_status",
+      "args": {},
+      "ms": 19,
+      "isError": false,
+      "text": "[\n  {\n    \"id\": \"hub-1-mvvejdoo\",\n    \"sessionId\": \"session-0642f662-aaaa-44f6-ade9-0da704d9f291\",\n    \"tier\": \"flash\",\n    \"model\": \"deepseek-v4-flash\",\n    \"provider\": \"deepseek-official\",\n    \"effort\": \"high\",\n    \"status\": \"idle\",\n    \"source\": \"node\",\n    \"task\": \"You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"turn\": 4,\n    \"step\": 2,\n    \"currentTool\": null,\n    \"toolCalls\": 1,\n    \"tokens\": {\n      \"input\": 12146,\n      \"output\": 208,\n      \"reasoning\": 0\n    },\n    \"mode\": \"hub\",\n    \"turns\": 4,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": \"2026-10-30T20:05:40.870Z\",\n    \"startedAt\": \"2026-10-30T20:05:32.808Z\",\n    \"endedAt\": \"2026-10-30T20:05:33.958Z\",\n    \"questions\": [],\n    \"capabilities\": {\n      \"resume\": true,\n      \"steer\": true,\n      \"flush\": true\n    },\n    \"origin\": \"hub-558738\"\n  },\n  {\n    \"id\": \"hub-2-mvverhn1\",\n    \"sessionId\": \"session-7566d1d5-ecff-400b-ab75-8b04b7d135cd\",\n    \"tier\": \"flash\",\n    \"model\": \"deepseek-v4-flash\",\n    \"provider\": \"deepseek-official\",\n    \"effort\": \"high\",\n    \"status\": \"running\",\n    \"source\": \"node\",\n    \"task\": \"You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"turn\": 2,\n    \"step\": 1,\n    \"currentTool\": null,\n    \"toolCalls\": 0,\n    \"tokens\": {\n      \"input\": 176,\n      \"output\": 76,\n      \"reasoning\": 0\n    },\n    \"mode\": \"hub\",\n    \"turns\": 2,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": \"2026-10-30T20:11:52.901Z\",\n    \"startedAt\": \"2026-10-30T20:11:51.182Z\",\n    \"endedAt\": \"2026-10-30T20:11:52.868Z\",\n    \"capabilities\": {\n      \"resume\": true,\n      \"steer\": true,\n      \"flush\": true\n    },\n    \"origin\": \"hub-558738\",\n    \"origin_depth\": 1,\n    \"origin_chain\": [\n      {\n        \"backend\": \"hub\",\n        \"cwd\": \"/tmp/t09-worker-workspace\",\n        \"source\": \"node\"\n      }\n    ]\n  },\n  {\n    \"kind\": \"cwd-lock\",\n    \"id\": \"cwd-lock-1\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"holder\": {\n      \"jobId\": \"hub-2-mvverhn1\",\n      \"backend\": \"hub\",\n      \"mode\": \"hub\",\n      \"startedAt\": \"2026-10-30T20:11:51.170Z\",\n      \"cwd\": \"/tmp/t09-worker-workspace\"\n    },\n    \"note\": \"advisory workspace lock: a running worker holds this cwd, so a new dispatch to it is refused (unless allow_concurrent_cwd is set)\",\n    \"turns\": 0,\n    \"turn\": 0,\n    \"currentTool\": null,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": null\n  }\n]",
+      "json": [
+        {
+          "id": "hub-1-mvvejdoo",
+          "sessionId": "session-0642f662-aaaa-44f6-ade9-0da704d9f291",
+          "tier": "flash",
+          "model": "deepseek-v4-flash",
+          "provider": "deepseek-official",
+          "effort": "high",
+          "status": "idle",
+          "source": "node",
+          "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+          "cwd": "/tmp/t09-worker-workspace",
+          "turn": 4,
+          "step": 2,
+          "currentTool": null,
+          "toolCalls": 1,
+          "tokens": {
+            "input": 12146,
+            "output": 208,
+            "reasoning": 0
+          },
+          "mode": "hub",
+          "turns": 4,
+          "pendingQuestions": 0,
+          "lastEventAt": "2026-10-30T20:05:40.870Z",
+          "startedAt": "2026-10-30T20:05:32.808Z",
+          "endedAt": "2026-10-30T20:05:33.958Z",
+          "questions": [],
+          "capabilities": {
+            "resume": true,
+            "steer": true,
+            "flush": true
+          },
+          "origin": "hub-558738"
+        },
+        {
+          "id": "hub-2-mvverhn1",
+          "sessionId": "session-7566d1d5-ecff-400b-ab75-8b04b7d135cd",
+          "tier": "flash",
+          "model": "deepseek-v4-flash",
+          "provider": "deepseek-official",
+          "effort": "high",
+          "status": "running",
+          "source": "node",
+          "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+          "cwd": "/tmp/t09-worker-workspace",
+          "turn": 2,
+          "step": 1,
+          "currentTool": null,
+          "toolCalls": 0,
+          "tokens": {
+            "input": 176,
+            "output": 76,
+            "reasoning": 0
+          },
+          "mode": "hub",
+          "turns": 2,
+          "pendingQuestions": 0,
+          "lastEventAt": "2026-10-30T20:11:52.901Z",
+          "startedAt": "2026-10-30T20:11:51.182Z",
+          "endedAt": "2026-10-30T20:11:52.868Z",
+          "capabilities": {
+            "resume": true,
+            "steer": true,
+            "flush": true
+          },
+          "origin": "hub-558738",
+          "origin_depth": 1,
+          "origin_chain": [
+            {
+              "backend": "hub",
+              "cwd": "/tmp/t09-worker-workspace",
+              "source": "node"
+            }
+          ]
+        },
+        {
+          "kind": "cwd-lock",
+          "id": "cwd-lock-1",
+          "cwd": "/tmp/t09-worker-workspace",
+          "holder": {
+            "jobId": "hub-2-mvverhn1",
+            "backend": "hub",
+            "mode": "hub",
+            "startedAt": "2026-10-30T20:11:51.170Z",
+            "cwd": "/tmp/t09-worker-workspace"
+          },
+          "note": "advisory workspace lock: a running worker holds this cwd, so a new dispatch to it is refused (unless allow_concurrent_cwd is set)",
+          "turns": 0,
+          "turn": 0,
+          "currentTool": null,
+          "pendingQuestions": 0,
+          "lastEventAt": null
+        }
+      ]
+    },
+    {
+      "at": "2026-10-30T20:11:54.930Z",
+      "tool": "dsh_worker_status",
+      "args": {},
+      "ms": 12,
+      "isError": false,
+      "text": "[\n  {\n    \"id\": \"hub-1-mvvejdoo\",\n    \"sessionId\": \"session-0642f662-aaaa-44f6-ade9-0da704d9f291\",\n    \"tier\": \"flash\",\n    \"model\": \"deepseek-v4-flash\",\n    \"provider\": \"deepseek-official\",\n    \"effort\": \"high\",\n    \"status\": \"idle\",\n    \"source\": \"node\",\n    \"task\": \"You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"turn\": 4,\n    \"step\": 2,\n    \"currentTool\": null,\n    \"toolCalls\": 1,\n    \"tokens\": {\n      \"input\": 12146,\n      \"output\": 208,\n      \"reasoning\": 0\n    },\n    \"mode\": \"hub\",\n    \"turns\": 4,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": \"2026-10-30T20:05:40.870Z\",\n    \"startedAt\": \"2026-10-30T20:05:32.808Z\",\n    \"endedAt\": \"2026-10-30T20:05:33.958Z\",\n    \"questions\": [],\n    \"capabilities\": {\n      \"resume\": true,\n      \"steer\": true,\n      \"flush\": true\n    },\n    \"origin\": \"hub-558738\"\n  },\n  {\n    \"id\": \"hub-2-mvverhn1\",\n    \"sessionId\": \"session-7566d1d5-ecff-400b-ab75-8b04b7d135cd\",\n    \"tier\": \"flash\",\n    \"model\": \"deepseek-v4-flash\",\n    \"provider\": \"deepseek-official\",\n    \"effort\": \"high\",\n    \"status\": \"idle\",\n    \"source\": \"node\",\n    \"task\": \"You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"turn\": 2,\n    \"step\": 1,\n    \"currentTool\": null,\n    \"toolCalls\": 0,\n    \"tokens\": {\n      \"input\": 328,\n      \"output\": 84,\n      \"reasoning\": 0\n    },\n    \"mode\": \"hub\",\n    \"turns\": 2,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": \"2026-10-30T20:11:53.835Z\",\n    \"startedAt\": \"2026-10-30T20:11:51.182Z\",\n    \"endedAt\": \"2026-10-30T20:11:52.868Z\",\n    \"capabilities\": {\n      \"resume\": true,\n      \"steer\": true,\n      \"flush\": true\n    },\n    \"origin\": \"hub-558738\",\n    \"origin_depth\": 1,\n    \"origin_chain\": [\n      {\n        \"backend\": \"hub\",\n        \"cwd\": \"/tmp/t09-worker-workspace\",\n        \"source\": \"node\"\n      }\n    ]\n  },\n  {\n    \"kind\": \"cwd-lock\",\n    \"id\": \"cwd-lock-1\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"holder\": {\n      \"jobId\": \"hub-2-mvverhn1\",\n      \"backend\": \"hub\",\n      \"mode\": \"hub\",\n      \"startedAt\": \"2026-10-30T20:11:51.170Z\",\n      \"cwd\": \"/tmp/t09-worker-workspace\"\n    },\n    \"note\": \"advisory workspace lock: a running worker holds this cwd, so a new dispatch to it is refused (unless allow_concurrent_cwd is set)\",\n    \"turns\": 0,\n    \"turn\": 0,\n    \"currentTool\": null,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": null\n  }\n]",
+      "json": [
+        {
+          "id": "hub-1-mvvejdoo",
+          "sessionId": "session-0642f662-aaaa-44f6-ade9-0da704d9f291",
+          "tier": "flash",
+          "model": "deepseek-v4-flash",
+          "provider": "deepseek-official",
+          "effort": "high",
+          "status": "idle",
+          "source": "node",
+          "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+          "cwd": "/tmp/t09-worker-workspace",
+          "turn": 4,
+          "step": 2,
+          "currentTool": null,
+          "toolCalls": 1,
+          "tokens": {
+            "input": 12146,
+            "output": 208,
+            "reasoning": 0
+          },
+          "mode": "hub",
+          "turns": 4,
+          "pendingQuestions": 0,
+          "lastEventAt": "2026-10-30T20:05:40.870Z",
+          "startedAt": "2026-10-30T20:05:32.808Z",
+          "endedAt": "2026-10-30T20:05:33.958Z",
+          "questions": [],
+          "capabilities": {
+            "resume": true,
+            "steer": true,
+            "flush": true
+          },
+          "origin": "hub-558738"
+        },
+        {
+          "id": "hub-2-mvverhn1",
+          "sessionId": "session-7566d1d5-ecff-400b-ab75-8b04b7d135cd",
+          "tier": "flash",
+          "model": "deepseek-v4-flash",
+          "provider": "deepseek-official",
+          "effort": "high",
+          "status": "idle",
+          "source": "node",
+          "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+          "cwd": "/tmp/t09-worker-workspace",
+          "turn": 2,
+          "step": 1,
+          "currentTool": null,
+          "toolCalls": 0,
+          "tokens": {
+            "input": 328,
+            "output": 84,
+            "reasoning": 0
+          },
+          "mode": "hub",
+          "turns": 2,
+          "pendingQuestions": 0,
+          "lastEventAt": "2026-10-30T20:11:53.835Z",
+          "startedAt": "2026-10-30T20:11:51.182Z",
+          "endedAt": "2026-10-30T20:11:52.868Z",
+          "capabilities": {
+            "resume": true,
+            "steer": true,
+            "flush": true
+          },
+          "origin": "hub-558738",
+          "origin_depth": 1,
+          "origin_chain": [
+            {
+              "backend": "hub",
+              "cwd": "/tmp/t09-worker-workspace",
+              "source": "node"
+            }
+          ]
+        },
+        {
+          "kind": "cwd-lock",
+          "id": "cwd-lock-1",
+          "cwd": "/tmp/t09-worker-workspace",
+          "holder": {
+            "jobId": "hub-2-mvverhn1",
+            "backend": "hub",
+            "mode": "hub",
+            "startedAt": "2026-10-30T20:11:51.170Z",
+            "cwd": "/tmp/t09-worker-workspace"
+          },
+          "note": "advisory workspace lock: a running worker holds this cwd, so a new dispatch to it is refused (unless allow_concurrent_cwd is set)",
+          "turns": 0,
+          "turn": 0,
+          "currentTool": null,
+          "pendingQuestions": 0,
+          "lastEventAt": null
+        }
+      ]
+    },
+    {
+      "at": "2026-10-30T20:11:54.930Z",
+      "tool": "wait_for",
+      "label": "turn 2 idle",
+      "job_id": "hub-2-mvverhn1",
+      "polls": 2,
+      "ms": 2032,
+      "final": {
+        "id": "hub-2-mvverhn1",
+        "sessionId": "session-7566d1d5-ecff-400b-ab75-8b04b7d135cd",
+        "tier": "flash",
+        "model": "deepseek-v4-flash",
+        "provider": "deepseek-official",
+        "effort": "high",
+        "status": "idle",
+        "source": "node",
+        "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+        "cwd": "/tmp/t09-worker-workspace",
+        "turn": 2,
+        "step": 1,
+        "currentTool": null,
+        "toolCalls": 0,
+        "tokens": {
+          "input": 328,
+          "output": 84,
+          "reasoning": 0
+        },
+        "mode": "hub",
+        "turns": 2,
+        "pendingQuestions": 0,
+        "lastEventAt": "2026-10-30T20:11:53.835Z",
+        "startedAt": "2026-10-30T20:11:51.182Z",
+        "endedAt": "2026-10-30T20:11:52.868Z",
+        "capabilities": {
+          "resume": true,
+          "steer": true,
+          "flush": true
+        },
+        "origin": "hub-558738",
+        "origin_depth": 1,
+        "origin_chain": [
+          {
+            "backend": "hub",
+            "cwd": "/tmp/t09-worker-workspace",
+            "source": "node"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-10-30T20:11:54.943Z",
+      "tool": "dsh_worker_message",
+      "args": {
+        "id": "hub-2-mvverhn1",
+        "message": "Turn 3: exercise the ask_user_question tool before answering. Call ask_user_question with exactly one question: {\"questions\":[{\"id\":\"codename\",\"header\":\"T09 codename\",\"question\":\"Which T09 release codename should this test record?\",\"options\":[{\"label\":\"BLUEBIRD\"},{\"label\":\"REDFOX\"}]}]} Wait for the answer. After you receive it, reply with exactly T09-ANSWER=<the selected label> and stop. Do not guess the answer and do not skip the tool call.",
+        "mode": "followup"
+      },
+      "ms": 13,
+      "isError": false,
+      "text": "{\n  \"action\": \"followup\",\n  \"job\": {\n    \"id\": \"hub-2-mvverhn1\",\n    \"sessionId\": \"session-7566d1d5-ecff-400b-ab75-8b04b7d135cd\",\n    \"tier\": \"flash\",\n    \"model\": \"deepseek-v4-flash\",\n    \"provider\": \"deepseek-official\",\n    \"effort\": \"high\",\n    \"status\": \"idle\",\n    \"source\": \"node\",\n    \"task\": \"You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"turn\": 2,\n    \"step\": 1,\n    \"currentTool\": null,\n    \"toolCalls\": 0,\n    \"tokens\": {\n      \"input\": 328,\n      \"output\": 84,\n      \"reasoning\": 0\n    },\n    \"mode\": \"hub\",\n    \"turns\": 2,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": \"2026-10-30T20:11:53.835Z\",\n    \"startedAt\": \"2026-10-30T20:11:51.182Z\",\n    \"endedAt\": \"2026-10-30T20:11:52.868Z\",\n    \"capabilities\": {\n      \"resume\": true,\n      \"steer\": true,\n      \"flush\": true\n    }\n  }\n}",
+      "json": {
+        "action": "followup",
+        "job": {
+          "id": "hub-2-mvverhn1",
+          "sessionId": "session-7566d1d5-ecff-400b-ab75-8b04b7d135cd",
+          "tier": "flash",
+          "model": "deepseek-v4-flash",
+          "provider": "deepseek-official",
+          "effort": "high",
+          "status": "idle",
+          "source": "node",
+          "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+          "cwd": "/tmp/t09-worker-workspace",
+          "turn": 2,
+          "step": 1,
+          "currentTool": null,
+          "toolCalls": 0,
+          "tokens": {
+            "input": 328,
+            "output": 84,
+            "reasoning": 0
+          },
+          "mode": "hub",
+          "turns": 2,
+          "pendingQuestions": 0,
+          "lastEventAt": "2026-10-30T20:11:53.835Z",
+          "startedAt": "2026-10-30T20:11:51.182Z",
+          "endedAt": "2026-10-30T20:11:52.868Z",
+          "capabilities": {
+            "resume": true,
+            "steer": true,
+            "flush": true
+          }
+        }
+      }
+    },
+    {
+      "at": "2026-10-30T20:11:54.978Z",
+      "tool": "dsh_worker_status",
+      "args": {},
+      "ms": 35,
+      "isError": false,
+      "text": "[\n  {\n    \"id\": \"hub-1-mvvejdoo\",\n    \"sessionId\": \"session-0642f662-aaaa-44f6-ade9-0da704d9f291\",\n    \"tier\": \"flash\",\n    \"model\": \"deepseek-v4-flash\",\n    \"provider\": \"deepseek-official\",\n    \"effort\": \"high\",\n    \"status\": \"idle\",\n    \"source\": \"node\",\n    \"task\": \"You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"turn\": 4,\n    \"step\": 2,\n    \"currentTool\": null,\n    \"toolCalls\": 1,\n    \"tokens\": {\n      \"input\": 12146,\n      \"output\": 208,\n      \"reasoning\": 0\n    },\n    \"mode\": \"hub\",\n    \"turns\": 4,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": \"2026-10-30T20:05:40.870Z\",\n    \"startedAt\": \"2026-10-30T20:05:32.808Z\",\n    \"endedAt\": \"2026-10-30T20:05:33.958Z\",\n    \"questions\": [],\n    \"capabilities\": {\n      \"resume\": true,\n      \"steer\": true,\n      \"flush\": true\n    },\n    \"origin\": \"hub-558738\"\n  },\n  {\n    \"id\": \"hub-2-mvverhn1\",\n    \"sessionId\": \"session-7566d1d5-ecff-400b-ab75-8b04b7d135cd\",\n    \"tier\": \"flash\",\n    \"model\": \"deepseek-v4-flash\",\n    \"provider\": \"deepseek-official\",\n    \"effort\": \"high\",\n    \"status\": \"running\",\n    \"source\": \"node\",\n    \"task\": \"You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"turn\": 3,\n    \"step\": 1,\n    \"currentTool\": null,\n    \"toolCalls\": 0,\n    \"tokens\": {\n      \"input\": 328,\n      \"output\": 84,\n      \"reasoning\": 0\n    },\n    \"mode\": \"hub\",\n    \"turns\": 3,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": \"2026-10-30T20:11:54.947Z\",\n    \"startedAt\": \"2026-10-30T20:11:51.182Z\",\n    \"endedAt\": \"2026-10-30T20:11:52.868Z\",\n    \"capabilities\": {\n      \"resume\": true,\n      \"steer\": true,\n      \"flush\": true\n    },\n    \"origin\": \"hub-558738\",\n    \"origin_depth\": 1,\n    \"origin_chain\": [\n      {\n        \"backend\": \"hub\",\n        \"cwd\": \"/tmp/t09-worker-workspace\",\n        \"source\": \"node\"\n      }\n    ]\n  },\n  {\n    \"kind\": \"cwd-lock\",\n    \"id\": \"cwd-lock-1\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"holder\": {\n      \"jobId\": \"hub-2-mvverhn1\",\n      \"backend\": \"hub\",\n      \"mode\": \"hub\",\n      \"startedAt\": \"2026-10-30T20:11:51.170Z\",\n      \"cwd\": \"/tmp/t09-worker-workspace\"\n    },\n    \"note\": \"advisory workspace lock: a running worker holds this cwd, so a new dispatch to it is refused (unless allow_concurrent_cwd is set)\",\n    \"turns\": 0,\n    \"turn\": 0,\n    \"currentTool\": null,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": null\n  }\n]",
+      "json": [
+        {
+          "id": "hub-1-mvvejdoo",
+          "sessionId": "session-0642f662-aaaa-44f6-ade9-0da704d9f291",
+          "tier": "flash",
+          "model": "deepseek-v4-flash",
+          "provider": "deepseek-official",
+          "effort": "high",
+          "status": "idle",
+          "source": "node",
+          "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+          "cwd": "/tmp/t09-worker-workspace",
+          "turn": 4,
+          "step": 2,
+          "currentTool": null,
+          "toolCalls": 1,
+          "tokens": {
+            "input": 12146,
+            "output": 208,
+            "reasoning": 0
+          },
+          "mode": "hub",
+          "turns": 4,
+          "pendingQuestions": 0,
+          "lastEventAt": "2026-10-30T20:05:40.870Z",
+          "startedAt": "2026-10-30T20:05:32.808Z",
+          "endedAt": "2026-10-30T20:05:33.958Z",
+          "questions": [],
+          "capabilities": {
+            "resume": true,
+            "steer": true,
+            "flush": true
+          },
+          "origin": "hub-558738"
+        },
+        {
+          "id": "hub-2-mvverhn1",
+          "sessionId": "session-7566d1d5-ecff-400b-ab75-8b04b7d135cd",
+          "tier": "flash",
+          "model": "deepseek-v4-flash",
+          "provider": "deepseek-official",
+          "effort": "high",
+          "status": "running",
+          "source": "node",
+          "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+          "cwd": "/tmp/t09-worker-workspace",
+          "turn": 3,
+          "step": 1,
+          "currentTool": null,
+          "toolCalls": 0,
+          "tokens": {
+            "input": 328,
+            "output": 84,
+            "reasoning": 0
+          },
+          "mode": "hub",
+          "turns": 3,
+          "pendingQuestions": 0,
+          "lastEventAt": "2026-10-30T20:11:54.947Z",
+          "startedAt": "2026-10-30T20:11:51.182Z",
+          "endedAt": "2026-10-30T20:11:52.868Z",
+          "capabilities": {
+            "resume": true,
+            "steer": true,
+            "flush": true
+          },
+          "origin": "hub-558738",
+          "origin_depth": 1,
+          "origin_chain": [
+            {
+              "backend": "hub",
+              "cwd": "/tmp/t09-worker-workspace",
+              "source": "node"
+            }
+          ]
+        },
+        {
+          "kind": "cwd-lock",
+          "id": "cwd-lock-1",
+          "cwd": "/tmp/t09-worker-workspace",
+          "holder": {
+            "jobId": "hub-2-mvverhn1",
+            "backend": "hub",
+            "mode": "hub",
+            "startedAt": "2026-10-30T20:11:51.170Z",
+            "cwd": "/tmp/t09-worker-workspace"
+          },
+          "note": "advisory workspace lock: a running worker holds this cwd, so a new dispatch to it is refused (unless allow_concurrent_cwd is set)",
+          "turns": 0,
+          "turn": 0,
+          "currentTool": null,
+          "pendingQuestions": 0,
+          "lastEventAt": null
+        }
+      ]
+    },
+    {
+      "at": "2026-10-30T20:11:56.989Z",
+      "tool": "dsh_worker_status",
+      "args": {},
+      "ms": 10,
+      "isError": false,
+      "text": "[\n  {\n    \"id\": \"hub-1-mvvejdoo\",\n    \"sessionId\": \"session-0642f662-aaaa-44f6-ade9-0da704d9f291\",\n    \"tier\": \"flash\",\n    \"model\": \"deepseek-v4-flash\",\n    \"provider\": \"deepseek-official\",\n    \"effort\": \"high\",\n    \"status\": \"idle\",\n    \"source\": \"node\",\n    \"task\": \"You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"turn\": 4,\n    \"step\": 2,\n    \"currentTool\": null,\n    \"toolCalls\": 1,\n    \"tokens\": {\n      \"input\": 12146,\n      \"output\": 208,\n      \"reasoning\": 0\n    },\n    \"mode\": \"hub\",\n    \"turns\": 4,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": \"2026-10-30T20:05:40.870Z\",\n    \"startedAt\": \"2026-10-30T20:05:32.808Z\",\n    \"endedAt\": \"2026-10-30T20:05:33.958Z\",\n    \"questions\": [],\n    \"capabilities\": {\n      \"resume\": true,\n      \"steer\": true,\n      \"flush\": true\n    },\n    \"origin\": \"hub-558738\"\n  },\n  {\n    \"id\": \"hub-2-mvverhn1\",\n    \"sessionId\": \"session-7566d1d5-ecff-400b-ab75-8b04b7d135cd\",\n    \"tier\": \"flash\",\n    \"model\": \"deepseek-v4-flash\",\n    \"provider\": \"deepseek-official\",\n    \"effort\": \"high\",\n    \"status\": \"needs_input\",\n    \"source\": \"node\",\n    \"task\": \"You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"turn\": 3,\n    \"step\": 1,\n    \"currentTool\": \"ask_user_question\",\n    \"toolCalls\": 1,\n    \"tokens\": {\n      \"input\": 476,\n      \"output\": 184,\n      \"reasoning\": 0\n    },\n    \"mode\": \"hub\",\n    \"turns\": 3,\n    \"pendingQuestions\": 1,\n    \"lastEventAt\": \"2026-10-30T20:11:55.768Z\",\n    \"startedAt\": \"2026-10-30T20:11:51.182Z\",\n    \"endedAt\": \"2026-10-30T20:11:52.868Z\",\n    \"questions\": [\n      {\n        \"id\": \"q-c4a5f69b-8575-4bb5-b614-8cad18d032cd\",\n        \"question\": \"Which T09 release codename should this test record?\"\n      }\n    ],\n    \"capabilities\": {\n      \"resume\": true,\n      \"steer\": true,\n      \"flush\": true\n    },\n    \"origin\": \"hub-558738\",\n    \"origin_depth\": 1,\n    \"origin_chain\": [\n      {\n        \"backend\": \"hub\",\n        \"cwd\": \"/tmp/t09-worker-workspace\",\n        \"source\": \"node\"\n      }\n    ]\n  },\n  {\n    \"kind\": \"cwd-lock\",\n    \"id\": \"cwd-lock-1\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"holder\": {\n      \"jobId\": \"hub-2-mvverhn1\",\n      \"backend\": \"hub\",\n      \"mode\": \"hub\",\n      \"startedAt\": \"2026-10-30T20:11:51.170Z\",\n      \"cwd\": \"/tmp/t09-worker-workspace\"\n    },\n    \"note\": \"advisory workspace lock: a running worker holds this cwd, so a new dispatch to it is refused (unless allow_concurrent_cwd is set)\",\n    \"turns\": 0,\n    \"turn\": 0,\n    \"currentTool\": null,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": null\n  }\n]",
+      "json": [
+        {
+          "id": "hub-1-mvvejdoo",
+          "sessionId": "session-0642f662-aaaa-44f6-ade9-0da704d9f291",
+          "tier": "flash",
+          "model": "deepseek-v4-flash",
+          "provider": "deepseek-official",
+          "effort": "high",
+          "status": "idle",
+          "source": "node",
+          "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+          "cwd": "/tmp/t09-worker-workspace",
+          "turn": 4,
+          "step": 2,
+          "currentTool": null,
+          "toolCalls": 1,
+          "tokens": {
+            "input": 12146,
+            "output": 208,
+            "reasoning": 0
+          },
+          "mode": "hub",
+          "turns": 4,
+          "pendingQuestions": 0,
+          "lastEventAt": "2026-10-30T20:05:40.870Z",
+          "startedAt": "2026-10-30T20:05:32.808Z",
+          "endedAt": "2026-10-30T20:05:33.958Z",
+          "questions": [],
+          "capabilities": {
+            "resume": true,
+            "steer": true,
+            "flush": true
+          },
+          "origin": "hub-558738"
+        },
+        {
+          "id": "hub-2-mvverhn1",
+          "sessionId": "session-7566d1d5-ecff-400b-ab75-8b04b7d135cd",
+          "tier": "flash",
+          "model": "deepseek-v4-flash",
+          "provider": "deepseek-official",
+          "effort": "high",
+          "status": "needs_input",
+          "source": "node",
+          "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+          "cwd": "/tmp/t09-worker-workspace",
+          "turn": 3,
+          "step": 1,
+          "currentTool": "ask_user_question",
+          "toolCalls": 1,
+          "tokens": {
+            "input": 476,
+            "output": 184,
+            "reasoning": 0
+          },
+          "mode": "hub",
+          "turns": 3,
+          "pendingQuestions": 1,
+          "lastEventAt": "2026-10-30T20:11:55.768Z",
+          "startedAt": "2026-10-30T20:11:51.182Z",
+          "endedAt": "2026-10-30T20:11:52.868Z",
+          "questions": [
+            {
+              "id": "q-c4a5f69b-8575-4bb5-b614-8cad18d032cd",
+              "question": "Which T09 release codename should this test record?"
+            }
+          ],
+          "capabilities": {
+            "resume": true,
+            "steer": true,
+            "flush": true
+          },
+          "origin": "hub-558738",
+          "origin_depth": 1,
+          "origin_chain": [
+            {
+              "backend": "hub",
+              "cwd": "/tmp/t09-worker-workspace",
+              "source": "node"
+            }
+          ]
+        },
+        {
+          "kind": "cwd-lock",
+          "id": "cwd-lock-1",
+          "cwd": "/tmp/t09-worker-workspace",
+          "holder": {
+            "jobId": "hub-2-mvverhn1",
+            "backend": "hub",
+            "mode": "hub",
+            "startedAt": "2026-10-30T20:11:51.170Z",
+            "cwd": "/tmp/t09-worker-workspace"
+          },
+          "note": "advisory workspace lock: a running worker holds this cwd, so a new dispatch to it is refused (unless allow_concurrent_cwd is set)",
+          "turns": 0,
+          "turn": 0,
+          "currentTool": null,
+          "pendingQuestions": 0,
+          "lastEventAt": null
+        }
+      ]
+    },
+    {
+      "at": "2026-10-30T20:11:56.989Z",
+      "tool": "wait_for",
+      "label": "ask_user parked",
+      "job_id": "hub-2-mvverhn1",
+      "polls": 2,
+      "ms": 2046,
+      "final": {
+        "id": "hub-2-mvverhn1",
+        "sessionId": "session-7566d1d5-ecff-400b-ab75-8b04b7d135cd",
+        "tier": "flash",
+        "model": "deepseek-v4-flash",
+        "provider": "deepseek-official",
+        "effort": "high",
+        "status": "needs_input",
+        "source": "node",
+        "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+        "cwd": "/tmp/t09-worker-workspace",
+        "turn": 3,
+        "step": 1,
+        "currentTool": "ask_user_question",
+        "toolCalls": 1,
+        "tokens": {
+          "input": 476,
+          "output": 184,
+          "reasoning": 0
+        },
+        "mode": "hub",
+        "turns": 3,
+        "pendingQuestions": 1,
+        "lastEventAt": "2026-10-30T20:11:55.768Z",
+        "startedAt": "2026-10-30T20:11:51.182Z",
+        "endedAt": "2026-10-30T20:11:52.868Z",
+        "questions": [
+          {
+            "id": "q-c4a5f69b-8575-4bb5-b614-8cad18d032cd",
+            "question": "Which T09 release codename should this test record?"
+          }
+        ],
+        "capabilities": {
+          "resume": true,
+          "steer": true,
+          "flush": true
+        },
+        "origin": "hub-558738",
+        "origin_depth": 1,
+        "origin_chain": [
+          {
+            "backend": "hub",
+            "cwd": "/tmp/t09-worker-workspace",
+            "source": "node"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-10-30T20:11:56.989Z",
+      "tool": "evidence",
+      "note": "parked question status",
+      "job": {
+        "id": "hub-2-mvverhn1",
+        "sessionId": "session-7566d1d5-ecff-400b-ab75-8b04b7d135cd",
+        "tier": "flash",
+        "model": "deepseek-v4-flash",
+        "provider": "deepseek-official",
+        "effort": "high",
+        "status": "needs_input",
+        "source": "node",
+        "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+        "cwd": "/tmp/t09-worker-workspace",
+        "turn": 3,
+        "step": 1,
+        "currentTool": "ask_user_question",
+        "toolCalls": 1,
+        "tokens": {
+          "input": 476,
+          "output": 184,
+          "reasoning": 0
+        },
+        "mode": "hub",
+        "turns": 3,
+        "pendingQuestions": 1,
+        "lastEventAt": "2026-10-30T20:11:55.768Z",
+        "startedAt": "2026-10-30T20:11:51.182Z",
+        "endedAt": "2026-10-30T20:11:52.868Z",
+        "questions": [
+          {
+            "id": "q-c4a5f69b-8575-4bb5-b614-8cad18d032cd",
+            "question": "Which T09 release codename should this test record?"
+          }
+        ],
+        "capabilities": {
+          "resume": true,
+          "steer": true,
+          "flush": true
+        },
+        "origin": "hub-558738",
+        "origin_depth": 1,
+        "origin_chain": [
+          {
+            "backend": "hub",
+            "cwd": "/tmp/t09-worker-workspace",
+            "source": "node"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-10-30T20:11:57.001Z",
+      "tool": "dsh_worker_message",
+      "args": {
+        "id": "hub-2-mvverhn1",
+        "message": "BLUEBIRD"
+      },
+      "ms": 12,
+      "isError": false,
+      "text": "{\n  \"action\": \"answered\",\n  \"answered\": [\n    \"q-c4a5f69b-8575-4bb5-b614-8cad18d032cd\"\n  ],\n  \"job\": {\n    \"id\": \"hub-2-mvverhn1\",\n    \"sessionId\": \"session-7566d1d5-ecff-400b-ab75-8b04b7d135cd\",\n    \"tier\": \"flash\",\n    \"model\": \"deepseek-v4-flash\",\n    \"provider\": \"deepseek-official\",\n    \"effort\": \"high\",\n    \"status\": \"running\",\n    \"source\": \"node\",\n    \"task\": \"You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"turn\": 3,\n    \"step\": 1,\n    \"currentTool\": \"ask_user_question\",\n    \"toolCalls\": 1,\n    \"tokens\": {\n      \"input\": 476,\n      \"output\": 184,\n      \"reasoning\": 0\n    },\n    \"mode\": \"hub\",\n    \"turns\": 3,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": \"2026-10-30T20:11:56.996Z\",\n    \"startedAt\": \"2026-10-30T20:11:51.182Z\",\n    \"endedAt\": \"2026-10-30T20:11:52.868Z\",\n    \"questions\": [],\n    \"capabilities\": {\n      \"resume\": true,\n      \"steer\": true,\n      \"flush\": true\n    }\n  }\n}",
+      "json": {
+        "action": "answered",
+        "answered": [
+          "q-c4a5f69b-8575-4bb5-b614-8cad18d032cd"
+        ],
+        "job": {
+          "id": "hub-2-mvverhn1",
+          "sessionId": "session-7566d1d5-ecff-400b-ab75-8b04b7d135cd",
+          "tier": "flash",
+          "model": "deepseek-v4-flash",
+          "provider": "deepseek-official",
+          "effort": "high",
+          "status": "running",
+          "source": "node",
+          "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+          "cwd": "/tmp/t09-worker-workspace",
+          "turn": 3,
+          "step": 1,
+          "currentTool": "ask_user_question",
+          "toolCalls": 1,
+          "tokens": {
+            "input": 476,
+            "output": 184,
+            "reasoning": 0
+          },
+          "mode": "hub",
+          "turns": 3,
+          "pendingQuestions": 0,
+          "lastEventAt": "2026-10-30T20:11:56.996Z",
+          "startedAt": "2026-10-30T20:11:51.182Z",
+          "endedAt": "2026-10-30T20:11:52.868Z",
+          "questions": [],
+          "capabilities": {
+            "resume": true,
+            "steer": true,
+            "flush": true
+          }
+        }
+      }
+    },
+    {
+      "at": "2026-10-30T20:11:57.001Z",
+      "tool": "evidence",
+      "note": "answer accepted",
+      "answer": {
+        "action": "answered",
+        "answered": [
+          "q-c4a5f69b-8575-4bb5-b614-8cad18d032cd"
+        ],
+        "job": {
+          "id": "hub-2-mvverhn1",
+          "sessionId": "session-7566d1d5-ecff-400b-ab75-8b04b7d135cd",
+          "tier": "flash",
+          "model": "deepseek-v4-flash",
+          "provider": "deepseek-official",
+          "effort": "high",
+          "status": "running",
+          "source": "node",
+          "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+          "cwd": "/tmp/t09-worker-workspace",
+          "turn": 3,
+          "step": 1,
+          "currentTool": "ask_user_question",
+          "toolCalls": 1,
+          "tokens": {
+            "input": 476,
+            "output": 184,
+            "reasoning": 0
+          },
+          "mode": "hub",
+          "turns": 3,
+          "pendingQuestions": 0,
+          "lastEventAt": "2026-10-30T20:11:56.996Z",
+          "startedAt": "2026-10-30T20:11:51.182Z",
+          "endedAt": "2026-10-30T20:11:52.868Z",
+          "questions": [],
+          "capabilities": {
+            "resume": true,
+            "steer": true,
+            "flush": true
+          }
+        }
+      }
+    },
+    {
+      "at": "2026-10-30T20:11:57.021Z",
+      "tool": "dsh_worker_status",
+      "args": {},
+      "ms": 20,
+      "isError": false,
+      "text": "[\n  {\n    \"id\": \"hub-1-mvvejdoo\",\n    \"sessionId\": \"session-0642f662-aaaa-44f6-ade9-0da704d9f291\",\n    \"tier\": \"flash\",\n    \"model\": \"deepseek-v4-flash\",\n    \"provider\": \"deepseek-official\",\n    \"effort\": \"high\",\n    \"status\": \"idle\",\n    \"source\": \"node\",\n    \"task\": \"You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"turn\": 4,\n    \"step\": 2,\n    \"currentTool\": null,\n    \"toolCalls\": 1,\n    \"tokens\": {\n      \"input\": 12146,\n      \"output\": 208,\n      \"reasoning\": 0\n    },\n    \"mode\": \"hub\",\n    \"turns\": 4,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": \"2026-10-30T20:05:40.870Z\",\n    \"startedAt\": \"2026-10-30T20:05:32.808Z\",\n    \"endedAt\": \"2026-10-30T20:05:33.958Z\",\n    \"questions\": [],\n    \"capabilities\": {\n      \"resume\": true,\n      \"steer\": true,\n      \"flush\": true\n    },\n    \"origin\": \"hub-558738\"\n  },\n  {\n    \"id\": \"hub-2-mvverhn1\",\n    \"sessionId\": \"session-7566d1d5-ecff-400b-ab75-8b04b7d135cd\",\n    \"tier\": \"flash\",\n    \"model\": \"deepseek-v4-flash\",\n    \"provider\": \"deepseek-official\",\n    \"effort\": \"high\",\n    \"status\": \"running\",\n    \"source\": \"node\",\n    \"task\": \"You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"turn\": 3,\n    \"step\": 1,\n    \"currentTool\": null,\n    \"toolCalls\": 1,\n    \"tokens\": {\n      \"input\": 476,\n      \"output\": 184,\n      \"reasoning\": 0\n    },\n    \"mode\": \"hub\",\n    \"turns\": 3,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": \"2026-10-30T20:11:57.003Z\",\n    \"startedAt\": \"2026-10-30T20:11:51.182Z\",\n    \"endedAt\": \"2026-10-30T20:11:52.868Z\",\n    \"questions\": [],\n    \"capabilities\": {\n      \"resume\": true,\n      \"steer\": true,\n      \"flush\": true\n    },\n    \"origin\": \"hub-558738\",\n    \"origin_depth\": 1,\n    \"origin_chain\": [\n      {\n        \"backend\": \"hub\",\n        \"cwd\": \"/tmp/t09-worker-workspace\",\n        \"source\": \"node\"\n      }\n    ]\n  },\n  {\n    \"kind\": \"cwd-lock\",\n    \"id\": \"cwd-lock-1\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"holder\": {\n      \"jobId\": \"hub-2-mvverhn1\",\n      \"backend\": \"hub\",\n      \"mode\": \"hub\",\n      \"startedAt\": \"2026-10-30T20:11:51.170Z\",\n      \"cwd\": \"/tmp/t09-worker-workspace\"\n    },\n    \"note\": \"advisory workspace lock: a running worker holds this cwd, so a new dispatch to it is refused (unless allow_concurrent_cwd is set)\",\n    \"turns\": 0,\n    \"turn\": 0,\n    \"currentTool\": null,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": null\n  }\n]",
+      "json": [
+        {
+          "id": "hub-1-mvvejdoo",
+          "sessionId": "session-0642f662-aaaa-44f6-ade9-0da704d9f291",
+          "tier": "flash",
+          "model": "deepseek-v4-flash",
+          "provider": "deepseek-official",
+          "effort": "high",
+          "status": "idle",
+          "source": "node",
+          "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+          "cwd": "/tmp/t09-worker-workspace",
+          "turn": 4,
+          "step": 2,
+          "currentTool": null,
+          "toolCalls": 1,
+          "tokens": {
+            "input": 12146,
+            "output": 208,
+            "reasoning": 0
+          },
+          "mode": "hub",
+          "turns": 4,
+          "pendingQuestions": 0,
+          "lastEventAt": "2026-10-30T20:05:40.870Z",
+          "startedAt": "2026-10-30T20:05:32.808Z",
+          "endedAt": "2026-10-30T20:05:33.958Z",
+          "questions": [],
+          "capabilities": {
+            "resume": true,
+            "steer": true,
+            "flush": true
+          },
+          "origin": "hub-558738"
+        },
+        {
+          "id": "hub-2-mvverhn1",
+          "sessionId": "session-7566d1d5-ecff-400b-ab75-8b04b7d135cd",
+          "tier": "flash",
+          "model": "deepseek-v4-flash",
+          "provider": "deepseek-official",
+          "effort": "high",
+          "status": "running",
+          "source": "node",
+          "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+          "cwd": "/tmp/t09-worker-workspace",
+          "turn": 3,
+          "step": 1,
+          "currentTool": null,
+          "toolCalls": 1,
+          "tokens": {
+            "input": 476,
+            "output": 184,
+            "reasoning": 0
+          },
+          "mode": "hub",
+          "turns": 3,
+          "pendingQuestions": 0,
+          "lastEventAt": "2026-10-30T20:11:57.003Z",
+          "startedAt": "2026-10-30T20:11:51.182Z",
+          "endedAt": "2026-10-30T20:11:52.868Z",
+          "questions": [],
+          "capabilities": {
+            "resume": true,
+            "steer": true,
+            "flush": true
+          },
+          "origin": "hub-558738",
+          "origin_depth": 1,
+          "origin_chain": [
+            {
+              "backend": "hub",
+              "cwd": "/tmp/t09-worker-workspace",
+              "source": "node"
+            }
+          ]
+        },
+        {
+          "kind": "cwd-lock",
+          "id": "cwd-lock-1",
+          "cwd": "/tmp/t09-worker-workspace",
+          "holder": {
+            "jobId": "hub-2-mvverhn1",
+            "backend": "hub",
+            "mode": "hub",
+            "startedAt": "2026-10-30T20:11:51.170Z",
+            "cwd": "/tmp/t09-worker-workspace"
+          },
+          "note": "advisory workspace lock: a running worker holds this cwd, so a new dispatch to it is refused (unless allow_concurrent_cwd is set)",
+          "turns": 0,
+          "turn": 0,
+          "currentTool": null,
+          "pendingQuestions": 0,
+          "lastEventAt": null
+        }
+      ]
+    },
+    {
+      "at": "2026-10-30T20:11:59.028Z",
+      "tool": "dsh_worker_status",
+      "args": {},
+      "ms": 6,
+      "isError": false,
+      "text": "[\n  {\n    \"id\": \"hub-1-mvvejdoo\",\n    \"sessionId\": \"session-0642f662-aaaa-44f6-ade9-0da704d9f291\",\n    \"tier\": \"flash\",\n    \"model\": \"deepseek-v4-flash\",\n    \"provider\": \"deepseek-official\",\n    \"effort\": \"high\",\n    \"status\": \"idle\",\n    \"source\": \"node\",\n    \"task\": \"You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"turn\": 4,\n    \"step\": 2,\n    \"currentTool\": null,\n    \"toolCalls\": 1,\n    \"tokens\": {\n      \"input\": 12146,\n      \"output\": 208,\n      \"reasoning\": 0\n    },\n    \"mode\": \"hub\",\n    \"turns\": 4,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": \"2026-10-30T20:05:40.870Z\",\n    \"startedAt\": \"2026-10-30T20:05:32.808Z\",\n    \"endedAt\": \"2026-10-30T20:05:33.958Z\",\n    \"questions\": [],\n    \"capabilities\": {\n      \"resume\": true,\n      \"steer\": true,\n      \"flush\": true\n    },\n    \"origin\": \"hub-558738\"\n  },\n  {\n    \"id\": \"hub-2-mvverhn1\",\n    \"sessionId\": \"session-7566d1d5-ecff-400b-ab75-8b04b7d135cd\",\n    \"tier\": \"flash\",\n    \"model\": \"deepseek-v4-flash\",\n    \"provider\": \"deepseek-official\",\n    \"effort\": \"high\",\n    \"status\": \"idle\",\n    \"source\": \"node\",\n    \"task\": \"You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"turn\": 3,\n    \"step\": 2,\n    \"currentTool\": null,\n    \"toolCalls\": 1,\n    \"tokens\": {\n      \"input\": 626,\n      \"output\": 194,\n      \"reasoning\": 0\n    },\n    \"mode\": \"hub\",\n    \"turns\": 3,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": \"2026-10-30T20:11:57.909Z\",\n    \"startedAt\": \"2026-10-30T20:11:51.182Z\",\n    \"endedAt\": \"2026-10-30T20:11:52.868Z\",\n    \"questions\": [],\n    \"capabilities\": {\n      \"resume\": true,\n      \"steer\": true,\n      \"flush\": true\n    },\n    \"origin\": \"hub-558738\",\n    \"origin_depth\": 1,\n    \"origin_chain\": [\n      {\n        \"backend\": \"hub\",\n        \"cwd\": \"/tmp/t09-worker-workspace\",\n        \"source\": \"node\"\n      }\n    ]\n  },\n  {\n    \"kind\": \"cwd-lock\",\n    \"id\": \"cwd-lock-1\",\n    \"cwd\": \"/tmp/t09-worker-workspace\",\n    \"holder\": {\n      \"jobId\": \"hub-2-mvverhn1\",\n      \"backend\": \"hub\",\n      \"mode\": \"hub\",\n      \"startedAt\": \"2026-10-30T20:11:51.170Z\",\n      \"cwd\": \"/tmp/t09-worker-workspace\"\n    },\n    \"note\": \"advisory workspace lock: a running worker holds this cwd, so a new dispatch to it is refused (unless allow_concurrent_cwd is set)\",\n    \"turns\": 0,\n    \"turn\": 0,\n    \"currentTool\": null,\n    \"pendingQuestions\": 0,\n    \"lastEventAt\": null\n  }\n]",
+      "json": [
+        {
+          "id": "hub-1-mvvejdoo",
+          "sessionId": "session-0642f662-aaaa-44f6-ade9-0da704d9f291",
+          "tier": "flash",
+          "model": "deepseek-v4-flash",
+          "provider": "deepseek-official",
+          "effort": "high",
+          "status": "idle",
+          "source": "node",
+          "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+          "cwd": "/tmp/t09-worker-workspace",
+          "turn": 4,
+          "step": 2,
+          "currentTool": null,
+          "toolCalls": 1,
+          "tokens": {
+            "input": 12146,
+            "output": 208,
+            "reasoning": 0
+          },
+          "mode": "hub",
+          "turns": 4,
+          "pendingQuestions": 0,
+          "lastEventAt": "2026-10-30T20:05:40.870Z",
+          "startedAt": "2026-10-30T20:05:32.808Z",
+          "endedAt": "2026-10-30T20:05:33.958Z",
+          "questions": [],
+          "capabilities": {
+            "resume": true,
+            "steer": true,
+            "flush": true
+          },
+          "origin": "hub-558738"
+        },
+        {
+          "id": "hub-2-mvverhn1",
+          "sessionId": "session-7566d1d5-ecff-400b-ab75-8b04b7d135cd",
+          "tier": "flash",
+          "model": "deepseek-v4-flash",
+          "provider": "deepseek-official",
+          "effort": "high",
+          "status": "idle",
+          "source": "node",
+          "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+          "cwd": "/tmp/t09-worker-workspace",
+          "turn": 3,
+          "step": 2,
+          "currentTool": null,
+          "toolCalls": 1,
+          "tokens": {
+            "input": 626,
+            "output": 194,
+            "reasoning": 0
+          },
+          "mode": "hub",
+          "turns": 3,
+          "pendingQuestions": 0,
+          "lastEventAt": "2026-10-30T20:11:57.909Z",
+          "startedAt": "2026-10-30T20:11:51.182Z",
+          "endedAt": "2026-10-30T20:11:52.868Z",
+          "questions": [],
+          "capabilities": {
+            "resume": true,
+            "steer": true,
+            "flush": true
+          },
+          "origin": "hub-558738",
+          "origin_depth": 1,
+          "origin_chain": [
+            {
+              "backend": "hub",
+              "cwd": "/tmp/t09-worker-workspace",
+              "source": "node"
+            }
+          ]
+        },
+        {
+          "kind": "cwd-lock",
+          "id": "cwd-lock-1",
+          "cwd": "/tmp/t09-worker-workspace",
+          "holder": {
+            "jobId": "hub-2-mvverhn1",
+            "backend": "hub",
+            "mode": "hub",
+            "startedAt": "2026-10-30T20:11:51.170Z",
+            "cwd": "/tmp/t09-worker-workspace"
+          },
+          "note": "advisory workspace lock: a running worker holds this cwd, so a new dispatch to it is refused (unless allow_concurrent_cwd is set)",
+          "turns": 0,
+          "turn": 0,
+          "currentTool": null,
+          "pendingQuestions": 0,
+          "lastEventAt": null
+        }
+      ]
+    },
+    {
+      "at": "2026-10-30T20:11:59.028Z",
+      "tool": "wait_for",
+      "label": "answered turn idle",
+      "job_id": "hub-2-mvverhn1",
+      "polls": 2,
+      "ms": 2027,
+      "final": {
+        "id": "hub-2-mvverhn1",
+        "sessionId": "session-7566d1d5-ecff-400b-ab75-8b04b7d135cd",
+        "tier": "flash",
+        "model": "deepseek-v4-flash",
+        "provider": "deepseek-official",
+        "effort": "high",
+        "status": "idle",
+        "source": "node",
+        "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+        "cwd": "/tmp/t09-worker-workspace",
+        "turn": 3,
+        "step": 2,
+        "currentTool": null,
+        "toolCalls": 1,
+        "tokens": {
+          "input": 626,
+          "output": 194,
+          "reasoning": 0
+        },
+        "mode": "hub",
+        "turns": 3,
+        "pendingQuestions": 0,
+        "lastEventAt": "2026-10-30T20:11:57.909Z",
+        "startedAt": "2026-10-30T20:11:51.182Z",
+        "endedAt": "2026-10-30T20:11:52.868Z",
+        "questions": [],
+        "capabilities": {
+          "resume": true,
+          "steer": true,
+          "flush": true
+        },
+        "origin": "hub-558738",
+        "origin_depth": 1,
+        "origin_chain": [
+          {
+            "backend": "hub",
+            "cwd": "/tmp/t09-worker-workspace",
+            "source": "node"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-10-30T20:11:59.034Z",
+      "tool": "dsh_worker_result",
+      "args": {
+        "job_id": "hub-2-mvverhn1",
+        "wait_seconds": 0
+      },
+      "ms": 6,
+      "isError": false,
+      "text": "{\n  \"id\": \"hub-2-mvverhn1\",\n  \"sessionId\": \"session-7566d1d5-ecff-400b-ab75-8b04b7d135cd\",\n  \"tier\": \"flash\",\n  \"model\": \"deepseek-v4-flash\",\n  \"provider\": \"deepseek-official\",\n  \"effort\": \"high\",\n  \"status\": \"idle\",\n  \"source\": \"node\",\n  \"task\": \"You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.\",\n  \"cwd\": \"/tmp/t09-worker-workspace\",\n  \"turn\": 3,\n  \"step\": 2,\n  \"currentTool\": null,\n  \"toolCalls\": 1,\n  \"tokens\": {\n    \"input\": 626,\n    \"output\": 194,\n    \"reasoning\": 0\n  },\n  \"mode\": \"hub\",\n  \"turns\": [\n    {\n      \"index\": 1,\n      \"prompt\": \"You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.\",\n      \"startedAt\": \"2026-10-30T20:11:51.258Z\",\n      \"endedAt\": \"2026-10-30T20:11:52.860Z\",\n      \"stopReason\": \"completed\",\n      \"usage\": {\n        \"input\": 176,\n        \"output\": 76,\n        \"reasoning\": 0\n      },\n      \"textPreview\": \"T09-TURN1-OK\"\n    },\n    {\n      \"index\": 2,\n      \"prompt\": \"Turn 2: reply with exactly T09-TURN2-OK and then stop. Do not use any tools.\",\n      \"startedAt\": \"2026-10-30T20:11:52.898Z\",\n      \"endedAt\": \"2026-10-30T20:11:53.828Z\",\n      \"stopReason\": \"completed\",\n      \"usage\": {\n        \"input\": 152,\n        \"output\": 8,\n        \"reasoning\": 0\n      },\n      \"textPreview\": \"T09-TURN2-OK\"\n    },\n    {\n      \"index\": 3,\n      \"prompt\": \"Turn 3: exercise the ask_user_question tool before answering. Call ask_user_question with exactly one question: {\\\"questions\\\":[{\\\"id\\\":\\\"codename\\\",\\\"header\\\":\\\"T09 codename\\\",\\\"question\\\":\\\"Which T09 release codename should this test record?\\\",\\\"options\\\":[{\\\"label\\\":\\\"BLUEBIRD\\\"},{\\\"label\\\":\\\"REDFOX\\\"}]}]} Wait for the answer. After you receive it, reply with exactly T09-ANSWER=<the selected label> and stop. Do not guess the answer and do not skip the tool call.\",\n      \"startedAt\": \"2026-10-30T20:11:54.941Z\",\n      \"endedAt\": \"2026-10-30T20:11:57.904Z\",\n      \"stopReason\": \"completed\",\n      \"usage\": {\n        \"input\": 298,\n        \"output\": 110,\n        \"reasoning\": 0\n      },\n      \"textPreview\": \"T09-ANSWER=BLUEBIRD\"\n    }\n  ],\n  \"pendingQuestions\": [],\n  \"lastEventAt\": \"2026-10-30T20:11:57.909Z\",\n  \"startedAt\": \"2026-10-30T20:11:51.182Z\",\n  \"endedAt\": \"2026-10-30T20:11:52.868Z\",\n  \"questions\": [],\n  \"capabilities\": {\n    \"resume\": true,\n    \"steer\": true,\n    \"flush\": true\n  },\n  \"result\": \"T09-ANSWER=BLUEBIRD\",\n  \"error\": null,\n  \"stopReason\": \"completed\",\n  \"reasonDetail\": {\n    \"kind\": \"completed\"\n  },\n  \"origin_depth\": 1,\n  \"origin_chain\": [\n    {\n      \"backend\": \"hub\",\n      \"cwd\": \"/tmp/t09-worker-workspace\",\n      \"source\": \"node\"\n    }\n  ],\n  \"pendingQuestionCount\": 0\n}",
+      "json": {
+        "id": "hub-2-mvverhn1",
+        "sessionId": "session-7566d1d5-ecff-400b-ab75-8b04b7d135cd",
+        "tier": "flash",
+        "model": "deepseek-v4-flash",
+        "provider": "deepseek-official",
+        "effort": "high",
+        "status": "idle",
+        "source": "node",
+        "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+        "cwd": "/tmp/t09-worker-workspace",
+        "turn": 3,
+        "step": 2,
+        "currentTool": null,
+        "toolCalls": 1,
+        "tokens": {
+          "input": 626,
+          "output": 194,
+          "reasoning": 0
+        },
+        "mode": "hub",
+        "turns": [
+          {
+            "index": 1,
+            "prompt": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+            "startedAt": "2026-10-30T20:11:51.258Z",
+            "endedAt": "2026-10-30T20:11:52.860Z",
+            "stopReason": "completed",
+            "usage": {
+              "input": 176,
+              "output": 76,
+              "reasoning": 0
+            },
+            "textPreview": "T09-TURN1-OK"
+          },
+          {
+            "index": 2,
+            "prompt": "Turn 2: reply with exactly T09-TURN2-OK and then stop. Do not use any tools.",
+            "startedAt": "2026-10-30T20:11:52.898Z",
+            "endedAt": "2026-10-30T20:11:53.828Z",
+            "stopReason": "completed",
+            "usage": {
+              "input": 152,
+              "output": 8,
+              "reasoning": 0
+            },
+            "textPreview": "T09-TURN2-OK"
+          },
+          {
+            "index": 3,
+            "prompt": "Turn 3: exercise the ask_user_question tool before answering. Call ask_user_question with exactly one question: {\"questions\":[{\"id\":\"codename\",\"header\":\"T09 codename\",\"question\":\"Which T09 release codename should this test record?\",\"options\":[{\"label\":\"BLUEBIRD\"},{\"label\":\"REDFOX\"}]}]} Wait for the answer. After you receive it, reply with exactly T09-ANSWER=<the selected label> and stop. Do not guess the answer and do not skip the tool call.",
+            "startedAt": "2026-10-30T20:11:54.941Z",
+            "endedAt": "2026-10-30T20:11:57.904Z",
+            "stopReason": "completed",
+            "usage": {
+              "input": 298,
+              "output": 110,
+              "reasoning": 0
+            },
+            "textPreview": "T09-ANSWER=BLUEBIRD"
+          }
+        ],
+        "pendingQuestions": [],
+        "lastEventAt": "2026-10-30T20:11:57.909Z",
+        "startedAt": "2026-10-30T20:11:51.182Z",
+        "endedAt": "2026-10-30T20:11:52.868Z",
+        "questions": [],
+        "capabilities": {
+          "resume": true,
+          "steer": true,
+          "flush": true
+        },
+        "result": "T09-ANSWER=BLUEBIRD",
+        "error": null,
+        "stopReason": "completed",
+        "reasonDetail": {
+          "kind": "completed"
+        },
+        "origin_depth": 1,
+        "origin_chain": [
+          {
+            "backend": "hub",
+            "cwd": "/tmp/t09-worker-workspace",
+            "source": "node"
+          }
+        ],
+        "pendingQuestionCount": 0
+      }
+    },
+    {
+      "at": "2026-10-30T20:11:59.034Z",
+      "tool": "evidence",
+      "note": "final result",
+      "job": {
+        "id": "hub-2-mvverhn1",
+        "sessionId": "session-7566d1d5-ecff-400b-ab75-8b04b7d135cd",
+        "tier": "flash",
+        "model": "deepseek-v4-flash",
+        "provider": "deepseek-official",
+        "effort": "high",
+        "status": "idle",
+        "source": "node",
+        "task": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+        "cwd": "/tmp/t09-worker-workspace",
+        "turn": 3,
+        "step": 2,
+        "currentTool": null,
+        "toolCalls": 1,
+        "tokens": {
+          "input": 626,
+          "output": 194,
+          "reasoning": 0
+        },
+        "mode": "hub",
+        "turns": [
+          {
+            "index": 1,
+            "prompt": "You are the worker in a DSH multi-turn end-to-end acceptance test. Do not modify any files. Do not run shell commands. This is a conversation-only test. Turn 1: reply with exactly T09-TURN1-OK and then stop. You will receive further follow-up messages in this same session; do not end the session.",
+            "startedAt": "2026-10-30T20:11:51.258Z",
+            "endedAt": "2026-10-30T20:11:52.860Z",
+            "stopReason": "completed",
+            "usage": {
+              "input": 176,
+              "output": 76,
+              "reasoning": 0
+            },
+            "textPreview": "T09-TURN1-OK"
+          },
+          {
+            "index": 2,
+            "prompt": "Turn 2: reply with exactly T09-TURN2-OK and then stop. Do not use any tools.",
+            "startedAt": "2026-10-30T20:11:52.898Z",
+            "endedAt": "2026-10-30T20:11:53.828Z",
+            "stopReason": "completed",
+            "usage": {
+              "input": 152,
+              "output": 8,
+              "reasoning": 0
+            },
+            "textPreview": "T09-TURN2-OK"
+          },
+          {
+            "index": 3,
+            "prompt": "Turn 3: exercise the ask_user_question tool before answering. Call ask_user_question with exactly one question: {\"questions\":[{\"id\":\"codename\",\"header\":\"T09 codename\",\"question\":\"Which T09 release codename should this test record?\",\"options\":[{\"label\":\"BLUEBIRD\"},{\"label\":\"REDFOX\"}]}]} Wait for the answer. After you receive it, reply with exactly T09-ANSWER=<the selected label> and stop. Do not guess the answer and do not skip the tool call.",
+            "startedAt": "2026-10-30T20:11:54.941Z",
+            "endedAt": "2026-10-30T20:11:57.904Z",
+            "stopReason": "completed",
+            "usage": {
+              "input": 298,
+              "output": 110,
+              "reasoning": 0
+            },
+            "textPreview": "T09-ANSWER=BLUEBIRD"
+          }
+        ],
+        "pendingQuestions": [],
+        "lastEventAt": "2026-10-30T20:11:57.909Z",
+        "startedAt": "2026-10-30T20:11:51.182Z",
+        "endedAt": "2026-10-30T20:11:52.868Z",
+        "questions": [],
+        "capabilities": {
+          "resume": true,
+          "steer": true,
+          "flush": true
+        },
+        "result": "T09-ANSWER=BLUEBIRD",
+        "error": null,
+        "stopReason": "completed",
+        "reasonDetail": {
+          "kind": "completed"
+        },
+        "origin_depth": 1,
+        "origin_chain": [
+          {
+            "backend": "hub",
+            "cwd": "/tmp/t09-worker-workspace",
+            "source": "node"
+          }
+        ],
+        "pendingQuestionCount": 0
+      }
+    },
+    {
+      "at": "2026-10-30T20:11:59.035Z",
+      "tool": "summary",
+      "summary": {
+        "run_id": "t09-2026-10-30T20-11-50-950Z",
+        "started_at": "2026-10-30T20:11:50.950Z",
+        "hub_url": "http://127.0.0.1:3099",
+        "work_dir": "/tmp/t09-worker-workspace",
+        "job_id": "hub-2-mvverhn1",
+        "session_id": "session-7566d1d5-ecff-400b-ab75-8b04b7d135cd",
+        "turns": 3,
+        "final_status": "idle",
+        "final_stop_reason": "completed",
+        "pending_questions": 0,
+        "assertions": {
+          "tools.surface": "pass",
+          "config.mode_hub": "pass",
+          "config.preset_flash_standard": "pass",
+          "run.job_id": "pass",
+          "run.turn1_text": "pass",
+          "status.after_turn1_present": "pass",
+          "status.after_turn1_turns_1": "pass",
+          "message.turn2_settled": "pass",
+          "question.needs_input": "pass",
+          "question.pending_count": "pass",
+          "turns.length>=3": "pass",
+          "V09.turns.length===3": "pass",
+          "turns.last.stopReason=completed": "pass",
+          "pendingQuestions.empty": "pass",
+          "status.success(idle-or-done)": "pass",
+          "final.result.answer": "pass",
+          "session_id.present": "pass",
+          "V09.literal_status_done": "deviation"
+        },
+        "failures": [],
+        "timings": {
+          "connect_ms": 152,
+          "config_ms": 41,
+          "turn1_ms": 1713,
+          "turn2_ms": 2040,
+          "turn3_to_question_ms": 2059,
+          "answer_to_idle_ms": 2039,
+          "result_ms": 6
+        },
+        "status_note": "final status is idle (success, session retained); the literal V09 word \"done\" is the one-shot standalone status, not the multiturn idle state",
+        "ok": true,
+        "duration_ms": 8085,
+        "finished_at": "2026-10-30T20:11:59.035Z"
+      }
+    }
+  ],
+  "stderr": []
+}

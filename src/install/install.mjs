@@ -10,7 +10,7 @@ import { homedir } from 'node:os';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const MARKETPLACE_NAME = 'dsh-crew';
 const PLUGIN_KEY = `dsh-crew@${MARKETPLACE_NAME}`;
-const MCP_TOOLS = ['dsh_run_worker', 'dsh_spawn_worker', 'dsh_worker_status', 'dsh_worker_result', 'dsh_worker_cancel'];
+const MCP_TOOLS = ['dsh_run_worker', 'dsh_spawn_worker', 'dsh_worker_status', 'dsh_worker_result', 'dsh_worker_cancel', 'dsh_worker_message', 'dsh_worker_events'];
 
 function backup(file) {
   if (existsSync(file)) {
@@ -109,6 +109,12 @@ export const GLOBAL_CONFIG_DEFAULTS = {
   // Hub-mode agent preset per tier: 'default' follows the DSH roster default.
   preset_flash: 'minimal',
   preset_pro: 'default',
+  // C02/T06: how a worker's user question is handled (ask = park it as
+  // needs_input until dsh_worker_message answers; handoff = legacy failure),
+  // how long an idle hub session is kept, and how long a parked question waits.
+  question_policy: 'ask',
+  idle_ttl_seconds: 1800,
+  question_timeout_seconds: 900,
 };
 
 export function readGlobalConfig() {

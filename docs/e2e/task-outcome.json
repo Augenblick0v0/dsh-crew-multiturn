@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "summary": "T09 end-to-end acceptance completed in isolated profile crewtest on 127.0.0.1:3099; live 3080 was never started, connected to, restarted or killed. Build passed and 79/79 tests passed. Real MCP chain produced job hub-2-mvverhn1 / session-7566d1d5-ecff-400b-ab75-8b04b7d135cd with 3 turns, pendingQuestions=[], result T09-ANSWER=BLUEBIRD; Codex 0.162.1 made real dsh_worker_status + dsh_worker_result calls; Web UI opened the same session with 3 turns 4 steps. One V09 literal wording deviation is documented: job final status is the product's success state `idle` + stopReason=completed, not the one-shot `done` status; it was not faked.",
+  "files": [
+    "docs/e2e-2026-10-30.md",
+    "docs/e2e/mcp-transcript.json",
+    "docs/e2e/mcp-summary.json",
+    "docs/e2e/job-hub-2-mvverhn1.json",
+    "docs/e2e/jobs-list.json",
+    "docs/e2e/plugin-probe.txt",
+    "docs/e2e/profile-setup.txt",
+    "docs/e2e/build.log",
+    "docs/e2e/tests.log",
+    "docs/e2e/codex-exec.jsonl",
+    "docs/e2e/codex-exec-summary.json",
+    "docs/e2e/codex-mcp-list.txt",
+    "docs/e2e/web-ui-session.png",
+    "docs/e2e/web-ui-session-top.png",
+    "scripts/e2e-followup.mjs",
+    "docs/e2e/task-outcome.json"
+  ],
+  "tests": "cd /root/dsh-crew && pnpm build:client -> exit 0, 1.086 s, lib/client.js 98446 bytes; node --test tests/*.test.mjs -> 79 tests, 79 pass, 0 fail, 0 cancelled, 0 skipped, duration 839.129871 ms.",
+  "notes": "Isolation: profile /root/.dsh/profiles/crewtest, port 3099, pid 558738; 3080 remained pid 372211 (started 2026-10-31 00:10:08) and was not touched. MCP server was started with DSHPLUGIN_CREW_HUB=http://127.0.0.1:3099, so no job went to 3080; the isolated hub /jobs list shows origin hub-558738. V09 deviations: (1) literal final status `done` vs actual `idle` + stopReason=completed (hub multiturn success state; `done` is the one-shot standalone terminal status, see src/hub/index.mjs:627-629 and docs/mcp-tools.md); (2) V09's 3080 manual sessionId comparison was replaced by the isolated 3099 Web UI same-session screenshot because the task forbids touching 3080. V09 `turns.length===3` now passes after the ask_user question was placed inside the second follow-up. Minor observation: job.endedAt records the end of initial dispatch, not the final follow-up; lastEventAt is authoritative.",
+  "blockers": []
+}

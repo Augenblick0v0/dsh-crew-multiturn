@@ -1,0 +1,60 @@
+# T09 isolated DSH profile — commands and observed output
+# Host: Linux, DSH 0.2.1-rc.4, Node v22.23.4, pnpm 11.25.0.
+# Isolation rule: all operations target profile "crewtest" and port 3099 only.
+
+$ /usr/bin/dsh plugin --profile crewtest add /root/dsh-crew
+# exit 0, 0.93 s — created the minimal profile (base bundle only)
+# This was not enough for the Web UI, so the profile was re-seeded from the
+# built-in "web" profile before adding the plugin again.
+
+$ cd /root && /usr/bin/dsh --profile crewtest --from-default-profile web --dump-config
+# exit 0 — profile bundles: @deepseek-ai/dsh-base, @deepseek-ai/dsh-web-app
+
+$ /usr/bin/dsh plugin --profile crewtest add /root/dsh-crew
+# exit 0, 0.94 s — package.json then read:
+
+{
+  "name": "dsh-profile-crewtest",
+  "private": true,
+  "dependencies": {
+    "@zseven-w/dsh-crew": "link:/root/dsh-crew"
+  },
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app",
+        "@zseven-w/dsh-crew"
+      ]
+    }
+  }
+}
+
+$ /usr/bin/dsh plugin --profile crewtest list
+Legend: production dependency, optional only, dev only
+
+dsh-profile-crewtest /root/.dsh/profiles/crewtest (PRIVATE)
+│
+│   dependencies:
+└── @zseven-w/dsh-crew@link:../../../dsh-crew
+
+1 package
+
+$ nohup /usr/bin/dsh --profile crewtest --no-open --port 3099 --host 127.0.0.1 > /tmp/t09-crewtest-server.log 2>&1 &
+$ cat /tmp/t09-crewtest-server.log
+dsh web: http://127.0.0.1:3099/?token=<redacted>
+[llm-deepseek-api-key] model listing from https://api.deepseek.com/models loaded 2 model(s), skipped 0 row(s)
+
+$ ps -o pid,lstart,cmd -p 558738
+    PID                  STARTED CMD
+ 558738 Sat Oct 31 04:02:09 2026 node /usr/bin/dsh --profile crewtest --no-open --port 3099 --host 127.0.0.1
+
+$ ss -ltnp | grep ':3099'
+LISTEN 0 511 127.0.0.1:3099 0.0.0.0:* users:(("node",pid=558738,fd=21))
+
+# Live instance was never touched:
+$ ss -ltnp | grep ':3080'
+LISTEN 0 511 127.0.0.1:3080 0.0.0.0:* users:(("node",pid=372211,fd=23))
+$ ps -o pid,lstart,cmd -p 372211
+    PID                  STARTED CMD
+ 372211 Sat Oct 31 00:10:08 2026 node /usr/bin/dsh --profile web --no-open --trusted-host ...

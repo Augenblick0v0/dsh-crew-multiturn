@@ -1,0 +1,20 @@
+{
+  "name": "dsh-crew-local",
+  "interface": {
+    "displayName": "DSH Crew Local"
+  },
+  "plugins": [
+    {
+      "name": "dsh-crew",
+      "source": {
+        "source": "local",
+        "path": "."
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

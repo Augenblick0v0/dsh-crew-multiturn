@@ -1,0 +1,31 @@
+{
+  "name": "dsh-crew",
+  "version": "0.1.0-rc.14",
+  "description": "Dispatch DeepSeek workers running in DSH from Codex, with multi-turn sessions.",
+  "author": {
+    "name": "ZSeven-W"
+  },
+  "license": "MIT",
+  "keywords": [
+    "dsh",
+    "deepseek",
+    "worker",
+    "subagent",
+    "multiturn",
+    "mcp"
+  ],
+  "interface": {
+    "displayName": "DSH Crew",
+    "shortDescription": "Run DSH workers from Codex",
+    "longDescription": "Exposes the dsh-crew MCP server: dispatch a task to a DeepSeek worker running inside DSH, answer its needs_input questions in the same turn with dsh_worker_message, and follow every turn through one stable jobId/sessionId pair.",
+    "developerName": "ZSeven-W",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Use dsh_run_worker to dispatch this task to a DSH worker, then report jobId and sessionId when it settles"
+    ]
+  }
+}
