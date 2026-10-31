@@ -52,7 +52,7 @@ The plugin ships its own settings page and jobs board — no separate service.
 Open the DSH profile that has the plugin → `More` (bottom left) → `Settings` → `DSH Crew`:
 
 - **Integrations** — one-click install into Claude Code; Codex / Antigravity / Grok status
-- **Global configuration** — default tier, `tier_policy`, escalation, per-tier presets, execution mode; flash / pro / vision models are picked as **provider → model from the host's configured catalog**, never typed by hand (no custom-provider form)
+- **Global configuration** — default tier, `tier_policy`, escalation, per-tier presets, execution mode; flash / pro models are picked as **provider → model from the host's configured catalog**, never typed by hand (no custom-provider form); vision still uses the claude-code / codex / grok / agy CLI bridge
 - **Runtime** — hub URL, `question_policy`, `idle_ttl_seconds`, `question_timeout_seconds`
 - **Jobs** — jobs grouped by workspace; open one to see every turn and the event tail (added here)
 

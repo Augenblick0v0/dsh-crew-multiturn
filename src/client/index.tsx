@@ -597,7 +597,18 @@ function WorkersPanel({ ctx }: { ctx: any }) {
     return list;
   }, [get, modelsByProvider]);
 
+  /** Populate the model lists for the routes already configured, so the
+   *  selects are usable the moment the panel opens (not only after a change). */
+  useEffect(() => {
+    if (!config || providers.length === 0) return;
+    for (const key of ['flash_provider', 'pro_provider'] as const) {
+      const p = config[key];
+      if (typeof p === 'string' && p !== '' && providers.some((x) => x.id === p)) void loadModels(p);
+    }
+  }, [config?.flash_provider, config?.pro_provider, providers.length, loadModels]);
+
   /** One tier route: provider from the host catalog, model from that provider. */
+  const routeSeq = useRef<Record<string, number>>({});
   const routeField = (tier: 'flash' | 'pro', label: string) => {
     const pKey = `${tier}_provider`;
     const mKey = `${tier}_model`;
@@ -614,16 +625,20 @@ function WorkersPanel({ ctx }: { ctx: any }) {
       <label style={S.field}><span style={S.fieldLabel}>{label} · provider</span>
         <CustomSelect value={prov}
           onChange={(p) => {
-            const next = modelsByProvider[p] ?? [];
-            const m = p === '' ? '' : (next[0]?.value ?? mod);
-            setConfig((c: any) => ({ ...c, [pKey]: p, [mKey]: m }));
-            applyPatch({ [pKey]: p, [mKey]: m });
+            // Load the catalog first, then write provider+model in one patch:
+            // an empty model would fall back to the DeepSeek default and, if
+            // the list request fails, leave the wrong model on another provider.
+            const token = (routeSeq.current[tier] ?? 0) + 1;
+            routeSeq.current[tier] = token;
             void loadModels(p).then((list) => {
-              const picked = list.some((o) => o.value === m) ? m : (list[0]?.value ?? m);
-              if (picked !== m) {
-                setConfig((c: any) => ({ ...c, [mKey]: picked }));
-                applyPatch({ [mKey]: picked });
+              if (routeSeq.current[tier] !== token) return; // a newer switch won
+              if (p !== '' && list.length === 0) {
+                setNotice(copy.routeEmpty);
+                return; // keep the previous provider rather than invent a model
               }
+              const picked = p === '' ? '' : (list.some((o) => o.value === mod) ? mod : list[0].value);
+              setConfig((c: any) => ({ ...c, [pKey]: p, [mKey]: picked }));
+              applyPatch({ [pKey]: p, [mKey]: picked });
             });
           }}
           options={[{ value: '', label: copy.routeDefault }, ...provOptions]} /></label>
@@ -679,8 +694,10 @@ function WorkersPanel({ ctx }: { ctx: any }) {
   /** Providers the host already configured; the panel never invents one. */
   const providerOptions = providers.map((p) => ({ value: p.id, label: p.name || p.id }));
   const visionProviderOptions = (() => {
+    // Vision is a CLI/native bridge (multimodal.mjs), not an LLM route: host
+    // providers such as router9 are not valid here and are rejected upstream.
     const cur = config?.vision_provider ?? '';
-    const known = [{ value: 'claude-code' }, { value: 'codex' }, { value: 'grok' }, { value: 'agy' }, ...providerOptions, { value: 'off' }];
+    const known = [{ value: 'claude-code' }, { value: 'codex' }, { value: 'grok' }, { value: 'agy' }, { value: 'off' }];
     return cur !== '' && !known.some((o) => o.value === cur)
       ? [...known, { value: cur, label: `${cur}${copy.notInCatalog}` }]
       : known;
@@ -692,10 +709,7 @@ function WorkersPanel({ ctx }: { ctx: any }) {
   const visionModelOptions = (() => {
     if (!config) return [];
     const p = config.vision_provider;
-    const isHost = providers.some((x) => x.id === p);
-    const base: Array<{ value: string; label?: string }> = isHost
-      ? (modelsByProvider[p] ?? [])
-      : dynModels[p] ?? (VISION_MODELS[p] ?? ['default']).map((m) => ({ value: m }));
+    const base: Array<{ value: string; label?: string }> = dynModels[p] ?? (VISION_MODELS[p] ?? ['default']).map((m) => ({ value: m }));
     const current = config.vision_model;
     const withCurrent = current && !base.some((o) => o.value === current)
       ? [...base, { value: current, label: `${current}${copy.notInCatalog}` }]
@@ -904,22 +918,7 @@ function WorkersPanel({ ctx }: { ctx: any }) {
           <label style={S.field}><span style={S.fieldLabel}>{copy.visionProvider}</span>
             <CustomSelect value={config.vision_provider}
               onChange={(p) => {
-                const isHost = providers.some((x) => x.id === p);
                 setModelAdd(null);
-                if (isHost) {
-                  const known = modelsByProvider[p] ?? [];
-                  const m = known[0]?.value ?? config.vision_model;
-                  setConfig((c: any) => ({ ...c, vision_provider: p, vision_model: m }));
-                  applyPatch({ vision_provider: p, vision_model: m });
-                  void loadModels(p).then((list) => {
-                    const picked = list.some((o) => o.value === m) ? m : (list[0]?.value ?? m);
-                    if (picked !== m) {
-                      setConfig((c: any) => ({ ...c, vision_model: picked }));
-                      applyPatch({ vision_model: picked });
-                    }
-                  });
-                  return;
-                }
                 const m = (VISION_MODELS[p] ?? ['default'])[0];
                 setConfig((c: any) => ({ ...c, vision_provider: p, vision_model: m }));
                 applyPatch({ vision_provider: p, vision_model: m });

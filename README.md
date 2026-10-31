@@ -50,7 +50,7 @@
 打开 **运行了这个插件的 DSH profile** → 左下角 `More` → `Settings` → 左侧 `DSH Crew`：
 
 - **Integrations**：一键把 dsh-crew 装进 Claude Code；Codex / Antigravity / Grok 的接入状态
-- **Global configuration**：默认档位、`tier_policy`、失败升档、per-tier preset、执行模式（hub / standalone）；flash / pro / 视觉三处模型都从 **DSH 已配置的 provider 与模型目录**里级联选择（provider → model），不再手填，也没有“自定义 Provider”表单
+- **Global configuration**：默认档位、`tier_policy`、失败升档、per-tier preset、执行模式（hub / standalone）；flash / pro 两档从 **DSH 已配置的 provider 与模型目录**里级联选择（provider → model），不再手填，也没有“自定义 Provider”表单（视觉仍走 claude-code / codex / grok / agy 这些 CLI 桥）
 - **Runtime**：hub 地址、`question_policy`、`idle_ttl_seconds`、`question_timeout_seconds`
 - **Jobs**：按工作区分组的任务表，点开是每一轮 `turns` 和事件尾部（本仓库新增）
 
