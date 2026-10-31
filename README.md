@@ -2,50 +2,65 @@
   <img src="./docs/images/dsh-crew-logo.png" alt="DSH Crew" width="110" />
 </p>
 
-<h1 align="center">DSH Crew · Multi-turn</h1>
+<h1 align="center">DSH Crew · 多轮版</h1>
 
 <p align="center">
-  <strong>Downstream maintenance line of <a href="https://github.com/ZSeven-W/dsh-crew">ZSeven-W/dsh-crew</a>.</strong><br />
-  Dispatch work from Codex / Claude Code / Antigravity into a real <a href="https://github.com/deepseek-ai/deepseek-harness">DeepSeek Harness</a> session — and keep talking to it.
+  <strong><a href="https://github.com/ZSeven-W/dsh-crew">ZSeven-W/dsh-crew</a> 的下游维护版本。</strong><br />
+  在 Codex / Claude Code / Antigravity 里把活派进真正的 <a href="https://github.com/deepseek-ai/deepseek-harness">DeepSeek Harness</a> 会话——并且能一直聊下去。
 </p>
 
 <p align="center">
-  <sub>English · <a href="./README.zh.md">简体中文</a></sub><br />
-  <sub>Status: pre-release, not published to npm &middot; Tested with DSH <code>0.2.1-rc.4</code> and Codex <code>0.162.1</code></sub>
+  <sub>简体中文 · <a href="./README.en.md">English</a></sub><br />
+  <sub>版本 <code>1.0.0</code>（未发布） &middot; 已在 DSH <code>0.2.1-rc.4</code> 与 Codex <code>0.162.1</code> 上验证</sub>
 </p>
 
 ---
 
-## What this repo is
+## 这是什么
 
-This is **not** an upstream release. It is an independently maintained downstream line of
-[`ZSeven-W/dsh-crew`](https://github.com/ZSeven-W/dsh-crew), based on upstream commit
-[`b0ddd92`](https://github.com/ZSeven-W/dsh-crew/commit/b0ddd92). Upstream's model stays intact:
+这**不是**上游发行版，而是 [`ZSeven-W/dsh-crew`](https://github.com/ZSeven-W/dsh-crew) 的独立下游维护线，
+基线是上游提交 [`b0ddd92`](https://github.com/ZSeven-W/dsh-crew/commit/b0ddd92)。上游的模型保持不变：
 
-- the host (Codex, Claude Code, Antigravity, Grok) keeps its own model and its own subagent UI;
-- the work runs inside a **DSH agent session** with DSH's tools, presets, sandbox and history;
-- tiers `flash` / `pro` pick capability from the DSH roster (`deepseek-v4-flash` / `deepseek-v4-pro`).
+- 宿主（Codex / Claude Code / Antigravity / Grok）用自己的模型、自己的子代理界面；
+- 活跑在 **DSH agent 会话**里，带 DSH 的工具、预设、沙箱和会话历史；
+- `flash` / `pro` 档位从 DSH 花名册里选能力（`deepseek-v4-flash` / `deepseek-v4-pro`）。
 
-What changes here is the **worker protocol**: upstream treats one dispatch as one shot, and kills the
-worker when it asks a question. This line makes a worker a persistent, conversational session.
+改的是 **worker 协议**：上游一次派发就是一轮，worker 一问问题就被销毁；这条线把 worker 变成可追问的持久会话。
 
-## What's different from upstream
+## 与上游的差异
 
-| | upstream `0.1.0-rc.14` | this line |
+| | 上游 `0.1.0-rc.14` | 本仓库 |
 |---|---|---|
-| Follow-up turns | one dispatch = one turn; ask again = new worker | `dsh_worker_message` — `auto` / `steer` / `followup` on the **same session**, `turns[]` keeps every turn |
-| Worker asks a question | worker is disposed, job ends `needs_input`; you must re-dispatch | question is **parked** (`pendingQuestions[]`), answer with `dsh_worker_message` or `POST /jobs/:id/answer`, the same turn continues |
-| Progress | status shard for the statusline | `GET /jobs/:id/events?since=` ring buffer (500 events) + `turns[]`, rendered in the DSH Web UI |
-| Job lifecycle | `done` / `failed` | `queued` → `running` → `idle` / `needs_input`, terminal `done` / `failed` / `cancelled` / `expired` |
-| MCP surface | 7 tools | 9 tools (`dsh_worker_message`, `dsh_worker_events` added) |
-| Codex integration | roles + prompts | roles rewritten as multi-turn dispatchers, plus a `.codex-plugin` bundle |
+| 追问 | 一次派发一轮，再问就新开 worker | `dsh_worker_message`（`auto` / `steer` / `followup`）在**同一会话**续跑，`turns[]` 保留每一轮 |
+| worker 提问 | 销毁 worker，任务以 `needs_input` 结束，只能重派 | 问题**挂起**（`pendingQuestions[]`），用 `dsh_worker_message` 或 `POST /jobs/:id/answer` 回答，同一轮继续 |
+| 进度 | statusline 分片 | `GET /jobs/:id/events?since=` 500 条环形事件 + `turns[]`，DSH Web UI 直接渲染 |
+| 任务状态 | `done` / `failed` | `queued` → `running` → `idle` / `needs_input`，终态 `done` / `failed` / `cancelled` / `expired` |
+| MCP 工具 | 7 个 | 9 个（新增 `dsh_worker_message`、`dsh_worker_events`） |
+| Codex 集成 | roles + prompts | roles 重写为多轮调度器，另带 `.codex-plugin` 包 |
 
-Idle workers stay warm for `idle_ttl_seconds` (default 1800 s) and are resumed with
-`ctx.agents.resume()` after that, so a long-running conversation survives across hours.
+空闲 worker 默认保活 `idle_ttl_seconds`（1800 秒）；超时后用 `ctx.agents.resume()` 恢复，
+所以跨小时的连续对话也不会丢上下文。
 
-## Install
+## 插件 UI
 
-> Requires Node 22+, pnpm, and a working DSH install (`dsh` on `PATH`). Nothing is on npm yet — install from source.
+插件自带一块完整的设置页和任务看板，跟着插件走，不需要另开服务。
+
+<img src="./docs/images/dsh-crew-settings.png" alt="DSH Crew 设置页" width="100%" />
+
+打开 **运行了这个插件的 DSH profile** → 左下角 `More` → `Settings` → 左侧 `DSH Crew`：
+
+- **Integrations**：一键把 dsh-crew 装进 Claude Code；Codex / Antigravity / Grok 的接入状态
+- **Global configuration**：默认档位、`tier_policy`、失败升档、per-tier preset、执行模式（hub / standalone）
+- **Runtime**：hub 地址、`question_policy`、`idle_ttl_seconds`、`question_timeout_seconds`
+- **Jobs**：按工作区分组的任务表，点开是每一轮 `turns` 和事件尾部（本仓库新增）
+
+> 本机现在跑在 `crew` profile（`127.0.0.1:3099`）。主 Web UI（`web` profile，3080）**没有**装这个插件，
+> 所以 3080 里看不到这块 UI——会话仍能在 3080 里看到（worker 本来就是一等的 DSH 会话），只是没有 Crew 面板。
+> 想让 3080 也有：把插件加进 `web` profile 的 bundles 再重启 `dsh-web`，见文末。
+
+## 安装
+
+> 需要 Node 22+、pnpm，以及可用的 DSH（`dsh` 在 PATH 里）。还没发 npm，只能从源码装。
 
 ```bash
 git clone https://github.com/Augenblick0v0/dsh-crew-multiturn.git
@@ -54,163 +69,165 @@ pnpm install
 pnpm build:client && pnpm build:mcp
 ```
 
-### 1. Run a DSH profile with the hub
+### 1. 起一个带 hub 的 DSH profile
 
 ```bash
-dsh plugin --profile crew add /absolute/path/to/dsh-crew-multiturn
+dsh plugin --profile crew add /绝对路径/dsh-crew-multiturn
 ```
 
-Add `@zseven-w/dsh-crew` to that profile's `dsh.profile.bundles` (in
-`~/.dsh/profiles/crew/package.json`), then:
+把 `@zseven-w/dsh-crew` 加进该 profile 的 `dsh.profile.bundles`（`~/.dsh/profiles/crew/package.json`），然后：
 
 ```bash
 dsh --profile crew --no-open --port 3099 --host 127.0.0.1
 curl -s http://127.0.0.1:3099/_dsh/dsh-crew/ping     # {"ok":true,"service":"dsh-crew-hub"}
 ```
 
-A systemd unit works well for a permanent hub:
+常驻可以用 systemd：
 
 ```ini
 [Service]
-WorkingDirectory=/absolute/path/to/dsh-crew-multiturn
+WorkingDirectory=/绝对路径/dsh-crew-multiturn
 Environment=DSH_HOME=/root/.dsh
 ExecStart=/usr/bin/dsh --profile crew --no-open --port 3099 --host 127.0.0.1
 Restart=on-failure
 RestartSec=3
 ```
 
-### 2. Point the host at the hub
+### 2. 让宿主连上 hub
 
-Codex:
+Codex：
 
 ```bash
 codex mcp add dsh-crew \
   --env DSHPLUGIN_CREW_HUB=http://127.0.0.1:3099 \
-  -- node /absolute/path/to/dsh-crew-multiturn/src/server.mjs
+  -- node /绝对路径/dsh-crew-multiturn/src/server.mjs
 ```
 
-> The plugin env prefix is `DSHPLUGIN_` (the legacy `DSH_` prefix is read-only and warns).
-> Without it the MCP server silently falls back to a standalone runtime.
+> 插件环境变量前缀是 `DSHPLUGIN_`（旧的 `DSH_` 只读且会告警）。没配这个变量时，MCP server 会静默退回 standalone 运行时。
 
-Claude Code / Antigravity / Grok: same command shape — register `node src/server.mjs` as an MCP
-stdio server with `DSHPLUGIN_CREW_HUB` in its environment.
+Claude Code / Antigravity / Grok 同理：把 `node src/server.mjs` 注册成 MCP stdio server，环境里带上 `DSHPLUGIN_CREW_HUB`。
 
-### 3. Optional: Codex agent roles
+### 3. 可选：Codex 角色
 
 ```bash
 node src/install/cli.mjs codex
 ```
 
-Installs `ds-flash` / `ds-pro` into `~/.codex/agents/` and the three prompts into `~/.codex/prompts/`.
-Each role is a thin dispatcher: it never does the task itself, it calls `dsh_run_worker` and keeps the
-`jobId`. Roles inherit the MCP server configured above.
+会装 `ds-flash` / `ds-pro` 到 `~/.codex/agents/`，三个 prompt 到 `~/.codex/prompts/`。
+每个角色都是薄调度器：自己不做任务，只调 `dsh_run_worker` 并记住 `jobId`。
+不想手改配置的话，[`codex/plugin/`](./codex/plugin) 里还有一份本地 marketplace 用的插件包。
 
-There is also a plugin bundle for Codex in [`codex/plugin/`](./codex/plugin) if you prefer a local
-marketplace install over hand-editing config.
-
-## Use
+## 用法
 
 ```text
-Use ds-pro to map every module under src/ and write docs/src-map.md.
+用 ds-pro 把 src 下每个模块梳理一遍，写到 docs/src-map.md。
 ```
 
-The dispatcher replies with a footer and, more importantly, a job id:
+调度器回复末尾会带 job 信息：
 
 ```text
 [ds-pro | job: hub-2-mvverhn1 | session: session-7566… | turn: 1 | status: idle | tokens in/out: 1321/31]
 ```
 
-Continue the same worker — no new session, no context loss:
+拿这个 id 追问，同一个会话继续：
 
 ```text
-Continue hub-2-mvverhn1: split that by HTTP method and add curl examples.
+继续 hub-2-mvverhn1：按 HTTP 方法分组，再补 curl 示例。
 ```
 
-If the worker needs a decision, it parks the question instead of dying:
+worker 需要你拍板时不会死，而是挂起问题：
 
 ```json
 {
   "status": "needs_input",
-  "pendingQuestions": [{ "id": "q-3f9c…", "question": "Overwrite docs/index.md?" }]
+  "pendingQuestions": [{ "id": "q-3f9c…", "question": "要覆盖 docs/index.md 吗？" }]
 }
 ```
 
-Answer it (MCP `dsh_worker_message`, or `POST /jobs/:id/answer`) and the same turn resumes.
+回答（MCP `dsh_worker_message` 或 `POST /jobs/:id/answer`），同一轮继续跑。
 
-### MCP tools
+### MCP 工具
 
-| Tool | Purpose |
+| 工具 | 用途 |
 |---|---|
-| `dsh_run_worker` | dispatch and wait for the first turn |
-| `dsh_spawn_worker` | dispatch asynchronously, returns a job id |
-| `dsh_worker_message` | next turn on the same job — `auto` (steer if running, followup if idle, resume if ended), `steer`, `followup` |
-| `dsh_worker_status` | status, turn, current tool, tokens, pending questions |
+| `dsh_run_worker` | 派发并等第一轮结果 |
+| `dsh_spawn_worker` | 异步派发，返回 job id |
+| `dsh_worker_message` | 同一 job 的下一轮：`auto`（运行中 steer、空闲 followup、已结束 resume）、`steer`、`followup` |
+| `dsh_worker_status` | 状态、轮次、当前工具、token、待答问题 |
 | `dsh_worker_result` | `{status, turns, result, pendingQuestions}` |
-| `dsh_worker_events` | incremental event stream since a sequence number |
-| `dsh_worker_cancel` | cancel and release the workspace lock |
-| `dsh_worker_config` | effective config + hub reachability |
-| `dsh_worker_probe` | probe a provider/model before dispatching |
+| `dsh_worker_events` | 从序号增量取事件 |
+| `dsh_worker_cancel` | 取消并释放工作区锁 |
+| `dsh_worker_config` | 当前配置 + hub 可达性 |
+| `dsh_worker_probe` | 派发前探测 provider/model |
 
-### HTTP routes
+### HTTP 路由
 
-All routes live under `/_dsh/dsh-crew` and are loopback-only (`127.x`, `::1`, `localhost`):
+全部挂在 `/_dsh/dsh-crew` 下，仅限 loopback（`127.x`、`::1`、`localhost`）：
 
 ```text
-POST /jobs                 create            GET  /jobs            list
-GET  /jobs/:id?wait=30     fetch             POST /jobs/:id/message follow-up
-POST /jobs/:id/answer      answer question   GET  /jobs/:id/events?since=0
-POST /jobs/:id/cancel      cancel            GET  /ping | /config | /presets | /providers
+POST /jobs                 创建             GET  /jobs            列表
+GET  /jobs/:id?wait=30     查询             POST /jobs/:id/message 追问
+POST /jobs/:id/answer      回答问题         GET  /jobs/:id/events?since=0
+POST /jobs/:id/cancel      取消             GET  /ping | /config | /presets | /providers
 ```
 
-## Architecture
+## 架构
 
 ```text
 Codex / Claude Code / Antigravity
         │  MCP stdio (src/server.mjs)
         ▼
-   dsh-crew MCP server ── HTTP loopback ──▶ hub (src/hub/index.mjs)
-                                              │  ctx.agents.create / resume
-                                              ▼
-                                   DSH worker session (flash | pro)
-                                   turns, questions, events, tokens
-                                              │
-                                              ▼
-                              DSH Web UI  ·  /jobs board  ·  statusline shard
+   dsh-crew MCP server ── 本机 HTTP ──▶ hub (src/hub/index.mjs)
+                                            │  ctx.agents.create / resume
+                                            ▼
+                                 DSH worker 会话（flash | pro）
+                                 turns / 提问 / 事件 / token
+                                            │
+                                            ▼
+                DSH Web UI（Settings → DSH Crew） · /jobs 看板 · statusline
 ```
 
-## Compatibility and state
+## 兼容性与状态
 
-- DSH `0.2.1-rc.4` (built against its `SubagentProvider` / `AgentFactory` / `user-questions` seams).
-- Codex `0.162.1` (agent roles + MCP server; plugin bundle in `codex/plugin/`).
-- `pnpm test` → 79 tests, all passing at the baseline commit of this line.
-- **No npm publish, no GitHub release yet.** Version stays `0.1.0-rc.14` until the first tagged
-  downstream build (`0.1.0-rc.14.dsh.1` is the planned scheme: upstream version + downstream revision).
+- DSH `0.2.1-rc.4`（依赖它的 `SubagentProvider` / `AgentFactory` / `user-questions` seam）。
+- Codex `0.162.1`（agent roles + MCP server；插件包在 `codex/plugin/`）。
+- `pnpm test` → 79 个测试全过。
+- 版本从 **`1.0.0`** 起（本仓库自有版本线，与上游 `0.1.0-rc.x` 无关）。
+  **暂未发 npm、暂未建 Release、暂未打 tag**——先测。
 
-## Staying in sync with upstream
+## 跟上游同步
 
 ```bash
-git remote add upstream https://github.com/ZSeven-W/dsh-crew.git   # once
+git remote add upstream https://github.com/ZSeven-W/dsh-crew.git   # 只需一次
 git fetch upstream
-git rebase upstream/main        # or merge, if you prefer a merge history
+git rebase upstream/main        # 或者 merge，看你喜欢哪种历史
 ```
 
-Conflict hotspots: `src/hub/index.mjs`, `src/server.mjs`, `src/worker-question.mjs`,
-`codex/agents/*.toml`. Everything else is largely untouched upstream code.
+冲突高发：`src/hub/index.mjs`、`src/server.mjs`、`src/worker-question.mjs`、`codex/agents/*.toml`。
 
-## Layout
+## 让 Crew 面板出现在主 UI（3080）
+
+```bash
+dsh plugin --profile web add /绝对路径/dsh-crew-multiturn
+# 再把 @zseven-w/dsh-crew 加进 ~/.dsh/profiles/web/package.json 的 bundles
+sudo systemctl restart dsh-web
+```
+
+重启会让主 UI 断约 15 秒（会话保留）。也可以维持现状：worker 跑 3099，主 UI 只管聊天。
+
+## 目录
 
 ```text
-src/hub/index.mjs      worker registry, turn state machine, routes
-src/worker-question.mjs parked questions (ask) vs upstream handoff
-src/server.mjs         MCP server, 9 tools
-src/hub-client.mjs     loopback client with wait-slicing
-src/client/index.tsx   DSH Web UI: job detail, turns, event tail
-codex/                 agent roles, prompts, plugin bundle
-tests/                 node:test suites (79)
+src/hub/index.mjs      worker 注册表、轮次状态机、路由
+src/worker-question.mjs 提问挂起（ask）与上游 handoff
+src/server.mjs         MCP server，9 个工具
+src/hub-client.mjs     loopback 客户端（wait 切片）
+src/client/index.tsx   DSH Web UI：设置页、任务看板、轮次与事件尾部
+codex/                 角色、prompt、插件包
+tests/                 node:test 测试（79）
 ```
 
-## License and attribution
+## 许可与署名
 
-MIT. Original work Copyright (c) 2026 ZSeven-W; modifications in this repository are distributed
-under the same license. See [LICENSE](./LICENSE). This project is not affiliated with or endorsed by
-the upstream maintainers.
+MIT。原始代码版权归 ZSeven-W (c) 2026；本仓库的修改以同一许可分发。见 [LICENSE](./LICENSE)。
+本项目与上游维护者无隶属关系，也未获其背书。

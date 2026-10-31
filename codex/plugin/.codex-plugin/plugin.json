@@ -1,6 +1,6 @@
 {
   "name": "dsh-crew",
-  "version": "0.1.0-rc.14",
+  "version": "1.0.0",
   "description": "Dispatch DeepSeek workers running in DSH from Codex, with multi-turn sessions.",
   "author": {
     "name": "ZSeven-W"
