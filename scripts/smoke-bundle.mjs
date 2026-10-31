@@ -20,7 +20,16 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const EXPECTED_TOOLS = [
+// Two surfaces: core (default, five tools - the token budget) and full
+// (DSHPLUGIN_CREW_TOOLS=full, all nine).
+const CORE_TOOLS = [
+  'dsh_run_worker',
+  'dsh_worker_status',
+  'dsh_worker_result',
+  'dsh_worker_message',
+  'dsh_worker_cancel',
+];
+const FULL_TOOLS = [
   'dsh_run_worker',
   'dsh_worker_config',
   'dsh_worker_probe',
@@ -60,6 +69,7 @@ console.log('[smoke:mcp] bundle assertions OK: no inlined @deepseek-ai/* code; l
 const tmp = mkdtempSync(join(tmpdir(), 'dsh-crew-smoke-'));
 let child = null;
 let finished = false;
+let switching = false;
 try {
   for (const f of ['lib/server.mjs', 'package.json', '.mcp.json']) {
     cpSync(join(ROOT, f), join(tmp, f), { recursive: true });
@@ -72,7 +82,7 @@ try {
   let stderr = '';
   child.stderr.on('data', (d) => { stderr += d.toString(); });
   child.on('exit', (code) => {
-    if (!finished) fail('server exited early (code ' + code + ') - it could not start from a node_modules-free copy. stderr: ' + stderr.trim());
+    if (!finished && !switching) fail('server exited early (code ' + code + ') - it could not start from a node_modules-free copy. stderr: ' + stderr.trim());
   });
 
   const pending = new Map(); // id -> { resolve, reject, timer }
@@ -134,11 +144,45 @@ try {
   console.log('--- tools/list response (raw) ---');
   console.log(responses[responses.length - 1]);
   const names = (list.result && list.result.tools || []).map((t) => t.name).sort();
-  const expected = EXPECTED_TOOLS.slice().sort();
-  if (JSON.stringify(names) !== JSON.stringify(expected)) {
-    fail('tools/list returned ' + JSON.stringify(names) + ', expected ' + JSON.stringify(expected));
+  if (JSON.stringify(names) !== JSON.stringify(CORE_TOOLS.slice().sort())) {
+    fail('core tools/list returned ' + JSON.stringify(names) + ', expected ' + JSON.stringify(CORE_TOOLS.slice().sort()));
   }
-  console.log('[smoke:mcp] tools/list OK: all ' + names.length + ' tools present: ' + names.join(', '));
+  console.log('[smoke:mcp] core tools/list OK: ' + names.length + ' tools: ' + names.join(', '));
+
+  // 3b. Opt into the full surface and confirm all nine are registered.
+  switching = true;
+  child.kill();
+  await new Promise((r) => setTimeout(r, 250));
+  buf = '';
+  child = spawn(process.execPath, ['lib/server.mjs'], {
+    cwd: tmp,
+    stdio: ['pipe', 'pipe', 'pipe'],
+    env: { ...process.env, DSHPLUGIN_CREW_TOOLS: 'full' },
+  });
+  let stderr2 = '';
+  child.stderr.on('data', (d) => { stderr2 += d.toString(); });
+  child.on('exit', (code) => {
+    if (!finished && !switching) fail('full-profile server exited early (code ' + code + '). stderr: ' + stderr2.trim());
+  });
+  child.stdout.on('data', (d) => {
+    buf += d.toString();
+    let i;
+    while ((i = buf.indexOf('\n')) >= 0) {
+      const line = buf.slice(0, i);
+      buf = buf.slice(i + 1);
+      if (line.trim()) { responses.push(line.trim()); routeLine(line); }
+    }
+  });
+  const init2 = await request('initialize', initParams);
+  if (!init2.result || init2.result.serverInfo.name !== 'dsh-crew') fail('full-profile initialize failed');
+  send({ jsonrpc: '2.0', method: 'notifications/initialized' });
+  const list2 = await request('tools/list', {});
+  const names2 = (list2.result && list2.result.tools || []).map((t) => t.name).sort();
+  if (JSON.stringify(names2) !== JSON.stringify(FULL_TOOLS.slice().sort())) {
+    fail('full tools/list returned ' + JSON.stringify(names2) + ', expected ' + JSON.stringify(FULL_TOOLS.slice().sort()));
+  }
+  console.log('[smoke:mcp] full tools/list OK: ' + names2.length + ' tools: ' + names2.join(', '));
+  switching = false;
 
   finished = true;
   child.kill();
