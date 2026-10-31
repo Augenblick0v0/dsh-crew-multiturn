@@ -4,10 +4,21 @@
 - Codex CLI：`codex-cli 0.162.1`（`/usr/bin/codex` → `/usr/lib/node_modules/@openai/codex/bin/codex.js`）
 - 仓库：`/root/dsh-crew`，分支 `feat/multiturn`
 - 接入决策：`DECISION: agent-role`（依据见 [codex-surface.md](./codex-surface.md)）
-- 三条路径共用同一个 MCP server：`node /root/dsh-crew/src/server.mjs`（stdio，9 个 `dsh_*` 工具）
+- 三条路径共用同一个 MCP server：`node /root/dsh-crew/src/server.mjs`（stdio；默认 `core` 5 个 `dsh_*` 工具，`full` 9 个）
 
 本文件给出三条安装路径、每条的实测验证输出、回滚命令，以及 `~/.codex/config.toml` 的备份规则。
 路径 A 是默认（DECISION）；路径 B/C 是备选，只在需要 marketplace 分发或无法投放 agent role 时使用。
+
+## 什么时候才派发
+
+**默认自己干，派发是例外。** role 装好不等于每次都要用：普通会话零派发是正常状态。
+
+只有满足任一条才派 DSH worker：
+
+1. 用户明确点名（ds-pro / ds-flash / 子代理 / worker）；
+2. 客观重型：改 **≥3 个文件**、预计 **>10 分钟**、有 **≥2 个可并行的独立子任务**，或需要长时间构建/测试循环。
+
+单文件、单命令、几行修改、一次性问答，**永不派发**；不确定就自己做，不问“要不要派”。派发时必须在回复里写一句触发条件，写不出就不该派。完整规则见 `~/.codex/AGENTS.md` 的「任务分派策略」。
 
 ## 安装包内容
 

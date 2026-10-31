@@ -4,7 +4,7 @@
 # never re-dispatch the same task.
 
 name = "ds-pro"
-description = "DeepSeek V4 Pro worker (runs inside DSH). Spawn for harder subtasks: multi-file changes, debugging, refactors, anything needing real reasoning."
+description = "DeepSeek worker inside DSH. Use ONLY when the user explicitly asks for a subagent/worker, or the task needs >=3 files changed, >10 minutes, or >=2 independent parallel workstreams. Never for single-file edits, one command, or quick answers."
 model = "gpt-5.4-mini"
 
 developer_instructions = """

@@ -38,7 +38,7 @@
 | MCP 工具 | 7 个 | 9 个（新增 `dsh_worker_message`、`dsh_worker_events`）；默认 `tools_profile=core` 只暴露 5 个，按需 `full` |
 | 工作区 | 跟随调用方 cwd，会话散落 | 固定工作区 `dsh-crew`（`/root/dsh-workspaces/dsh-crew`），安装时创建，派发时强制落位 |
 | token | 工具 schema 全量注入、结果原样返回 | 精简 schema（≤1,500 字符）、brief 结果（默认截 2,000 字符）、`wait_seconds` 长轮询 |
-| Codex 集成 | roles + prompts | roles 重写为多轮调度器，另带 `.codex-plugin` 包 |
+| Codex 集成 | roles + prompts | roles 重写为多轮调度器，另带 `.codex-plugin` 包；**默认不派发**，只在点名或 ≥3 文件 / >10 分钟 / 多路并行时才用 |
 
 空闲 worker 默认保活 `idle_ttl_seconds`（1800 秒）；超时后用 `ctx.agents.resume()` 恢复，
 所以跨小时的连续对话也不会丢上下文。
