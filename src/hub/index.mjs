@@ -186,6 +186,7 @@ export class WorkerRegistry {
       id: job.id, sessionId: job.sessionId, tier: job.tier, model: job.model, provider: job.provider,
       effort: job.effort, status: job.status, source: job.source, task: clipTask(job.task),
       cwd: job.cwd, turn: job.turn, step: job.step, currentTool: job.currentTool,
+      ...(job.cwdIgnored === undefined ? {} : { cwdIgnored: job.cwdIgnored }),
       toolCalls: job.toolCalls, tokens: job.tokens, mode: 'hub',
       turns: job.turns?.length ?? 0,
       pendingQuestions: job.pendingQuestions?.length ?? 0,
