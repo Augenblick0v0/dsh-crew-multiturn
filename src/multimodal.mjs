@@ -250,7 +250,7 @@ async function generateViaApi(entry, prompt, outputPath, size) {
   // fail late (or bill for nothing). Image generation is opt-in per provider.
   const m = String(entry.imagegen_model ?? '').trim();
   if (!m) throw new Error(tr(
-    `自定义 provider "${entry.name ?? entry.id}" 未配置生图模型（在设置 → DSH Crew → 自定义 Provider 的"生图模型"里填写）`,
+    `自定义 provider "${entry.name ?? entry.id}" 未配置生图模型（在 ~/.config/dsh-crew/config.json 的 custom_providers 里填写 imagegen_model）`,
     `Custom provider "${entry.name ?? entry.id}" has no image-gen model (fill in "Image-gen model" under Settings → DSH Crew → Custom providers)`));
   const body = { model: m, prompt, n: 1 };
   if (size && /^\d+x\d+$/.test(size)) body.size = size;
@@ -547,7 +547,7 @@ export async function listVisionModels(provider, force = false, getConfig = null
 function envelope(tool, text) { return { ok: true, tool, text }; }
 
 const VISION_PROVIDER_HINT = tr(
-  `未知视觉 provider: PROVIDER（内置: ${BUILTIN_VISION.join(' / ')} / native，或在设置 → DSH Crew → 自定义 Provider 里添加）`,
+  `未知视觉 provider: PROVIDER（内置: ${BUILTIN_VISION.join(' / ')} / native，或改用内置 provider）`,
   `Unknown vision provider: PROVIDER (built-in: ${BUILTIN_VISION.join(' / ')} / native, or add one under Settings → DSH Crew → Custom providers)`);
 
 /**
@@ -723,7 +723,7 @@ export function createMultimodalTools(getConfig) {
       const custom = BUILTIN_IMAGEGEN.includes(provider) ? null : findCustomProvider(config, provider);
       if (!BUILTIN_IMAGEGEN.includes(provider) && !custom) {
         throw new Error(tr(
-          `未知生图 provider: ${provider}（内置: ${BUILTIN_IMAGEGEN.join(' / ')}，或在设置 → DSH Crew → 自定义 Provider 里添加）`,
+          `未知生图 provider: ${provider}（内置: ${BUILTIN_IMAGEGEN.join(' / ')}，或改用内置 provider）`,
           `Unknown image-gen provider: ${provider} (built-in: ${BUILTIN_IMAGEGEN.join(' / ')}, or add one under Settings → DSH Crew → Custom providers)`));
       }
       const saved = custom

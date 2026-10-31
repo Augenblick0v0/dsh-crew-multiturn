@@ -50,13 +50,12 @@
 打开 **运行了这个插件的 DSH profile** → 左下角 `More` → `Settings` → 左侧 `DSH Crew`：
 
 - **Integrations**：一键把 dsh-crew 装进 Claude Code；Codex / Antigravity / Grok 的接入状态
-- **Global configuration**：默认档位、`tier_policy`、失败升档、per-tier preset、执行模式（hub / standalone）
+- **Global configuration**：默认档位、`tier_policy`、失败升档、per-tier preset、执行模式（hub / standalone）；flash / pro / 视觉三处模型都从 **DSH 已配置的 provider 与模型目录**里级联选择（provider → model），不再手填，也没有“自定义 Provider”表单
 - **Runtime**：hub 地址、`question_policy`、`idle_ttl_seconds`、`question_timeout_seconds`
 - **Jobs**：按工作区分组的任务表，点开是每一轮 `turns` 和事件尾部（本仓库新增）
 
-> 本机现在跑在 `crew` profile（`127.0.0.1:3099`）。主 Web UI（`web` profile，3080）**没有**装这个插件，
-> 所以 3080 里看不到这块 UI——会话仍能在 3080 里看到（worker 本来就是一等的 DSH 会话），只是没有 Crew 面板。
-> 想让 3080 也有：把插件加进 `web` profile 的 bundles 再重启 `dsh-web`，见文末。
+> 本机现在装在主 Web UI 的 `web` profile（`127.0.0.1:3080`），独立的 3099 工作台已停用。
+> worker 会话本来就是 DSH 的一等会话，在 3080 的会话列表里也能直接看到。
 
 ## 安装
 

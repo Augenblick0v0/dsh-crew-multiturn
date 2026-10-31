@@ -102,35 +102,19 @@ const COPY = {
     builtInPresetNames: { standard: '标准模式', ptc: 'PTC 模式', minimal: '极简模式', cordis: '创造模式' } as Record<string, string>,
     multimodal: '多模态',
     visionProvider: '视觉 provider', visionModel: '视觉模型', imagegenProvider: '生图 provider',
-    customProviders: '自定义 Provider', addProvider: '＋ 添加 Provider',
-    noCustomProviders: '暂无。添加后会出现在上方的视觉 / 生图 provider 选择里。',
-    providerName: '名称', modelsField: '模型列表（逗号分隔）',
-    providerType: '接入方式', typeApi: 'API · 兼容 OpenAI 接口', typeCli: 'CLI · 本地命令',
-    baseUrl: 'Base URL', apiKey: 'API Key', imagegenModel: '生图模型（留空=不提供生图）',
-    visionCmd: '视觉命令（可选）', imagegenCmd: '生图命令（可选）',
-    apiFormHint: '走 OpenAI 兼容接口：视觉调 {base}/chat/completions（图片以 base64 内联），生图调 {base}/images/generations。Key 保存在本机 ~/.config/dsh-crew/config.json，不会外发到第三方。',
-    cliFormHint: '命令经 bash 执行，占位符会被安全引用后代入。视觉: {image} {question} {model}，stdout 即答案；生图: {prompt} {output} {size}，命令须把图片写到 {output}。两条命令至少填一条。',
-    saveProvider: '保存', cancel: '取消', edit: '编辑', del: '删除',
-    testProvider: '连通测试', testing: '测试中…',
-    testTip: '按当前填写的内容实测：API 会检查可达性与鉴权并真发一次视觉请求；CLI 会检查可执行文件并真跑一次视觉命令。生图只校验配置，不实际出图。',
-    testPass: '连通正常', testFail: '连通失败',
+    routeFlash: 'flash 路由', routePro: 'pro 路由', routeDefault: '默认（内置路由）', routeEmpty: '（该 provider 无模型）', notInCatalog: '（未在目录）',
     staleHub: '本 DSH 实例还在跑旧版插件，缺少该接口 —— 重启 DSH 后再试',
     emptyResponse: (path: string, status: number) => `${path} → HTTP ${status}，响应为空`,
     badJson: (path: string, body: string) => `${path} → 非 JSON 响应: ${body}`,
     refreshModels: '重新从 CLI 获取模型列表',
     presetDefault: (id?: string) => `default · 跟随 DSH${id ? ` (${id})` : ''}`,
     progressTip: (t: string, turn: number, step: number, calls: number | string) => `耗时 ${t} · 第${turn}轮第${step}步 · ${calls} 次工具调用`,
-    confirmDeleteProvider: (n: string) => `删除自定义 provider「${n}」？`,
-    needName: '⚠ 名称必填', needCmd: '⚠ 视觉/生图命令至少填一条',
-    needBaseUrl: '⚠ Base URL 必填', needModels: '⚠ 模型列表至少填一个',
-    keySet: '已配置', keyPlaceholder: 'sk-…（留空则不发送 Authorization）',
     addModelTip: '添加模型到列表', removeModelTip: '从列表移除当前模型', modelPlaceholder: '模型 id，回车确认',
     capVision: '视觉', capImagegen: '生图',
     groupDispatch: '派发', groupRuntime: '运行', groupMultimodal: '多模态',
     cardDispatch: { t: '派发策略', d: 'orchestrator 未指定时的档位与推理强度，以及档位约束、失败升档与两档各自挂载的 Agent 预设。' },
     cardRuntime: { t: '执行与连接', d: 'worker 会话跑在本实例内还是独立进程，单个任务的超时上限，以及 CC / Codex 探测本实例的地址。' },
     cardMM: { t: '视觉与生图', d: '给纯文本的 DSH 模型借来眼睛和画笔：describe_image、会话贴图转写与 generate_image 都用这里的设置。' },
-    cardCustomProv: { t: '自定义 Provider', d: '接入自己的 API 或本地命令；保存后会出现在上面的视觉 / 生图 provider 选择里。' },
     modeDesc: { auto: 'auto · 优先 hub', hub: 'hub · 必须 hub', standalone: 'standalone · 独立进程' },
     save: '保存', saved: '已保存', jobs: 'Worker 任务', empty: '当前没有 worker 任务。',
     detailSession: '会话', detailTurns: '轮次', detailEvents: '事件', detailLoading: '加载中…', detailToggle: '展开/收起任务详情',
@@ -198,35 +182,19 @@ const COPY = {
     builtInPresetNames: { standard: 'Standard mode', ptc: 'PTC mode', minimal: 'Minimal mode', cordis: 'Creator mode' } as Record<string, string>,
     multimodal: 'Multimodal',
     visionProvider: 'Vision provider', visionModel: 'Vision model', imagegenProvider: 'Image-gen provider',
-    customProviders: 'Custom providers', addProvider: '＋ Add provider',
-    noCustomProviders: 'None yet. Added providers appear in the vision / image-gen selects above.',
-    providerName: 'Name', modelsField: 'Models (comma-separated)',
-    providerType: 'Connection', typeApi: 'API · OpenAI-compatible', typeCli: 'CLI · local command',
-    baseUrl: 'Base URL', apiKey: 'API key', imagegenModel: 'Image-gen model (empty = no image generation)',
-    visionCmd: 'Vision command (optional)', imagegenCmd: 'Image-gen command (optional)',
-    apiFormHint: 'OpenAI-compatible: vision calls {base}/chat/completions (image inlined as base64), image-gen calls {base}/images/generations. The key is stored locally in ~/.config/dsh-crew/config.json and never sent to third parties.',
-    cliFormHint: 'Commands run via bash with shell-quoted placeholders. Vision: {image} {question} {model}, stdout is the answer; image-gen: {prompt} {output} {size}, the command must write the image to {output}. Fill in at least one command.',
-    saveProvider: 'Save', cancel: 'Cancel', edit: 'Edit', del: 'Delete',
-    testProvider: 'Test', testing: 'Testing…',
-    testTip: 'Probes what is currently filled in: API checks reachability and auth then makes one real vision call; CLI checks the executable then runs the vision command once. Image generation is only validated, never actually run.',
-    testPass: 'Connection OK', testFail: 'Connection failed',
+    routeFlash: 'flash route', routePro: 'pro route', routeDefault: 'Default (built-in route)', routeEmpty: '(no models for this provider)', notInCatalog: ' (not in catalog)',
     staleHub: 'This DSH instance is still running an older build of the plugin and lacks this route — restart DSH and retry',
     emptyResponse: (path: string, status: number) => `${path} → HTTP ${status}, empty response`,
     badJson: (path: string, body: string) => `${path} → non-JSON response: ${body}`,
     refreshModels: 'Re-fetch the model list from the CLI',
     presetDefault: (id?: string) => `default · follow DSH${id ? ` (${id})` : ''}`,
     progressTip: (t: string, turn: number, step: number, calls: number | string) => `${t} elapsed · turn ${turn}, step ${step} · ${calls} tool calls`,
-    confirmDeleteProvider: (n: string) => `Delete custom provider "${n}"?`,
-    needName: '⚠ Name is required', needCmd: '⚠ Fill in at least one command',
-    needBaseUrl: '⚠ Base URL is required', needModels: '⚠ Add at least one model',
-    keySet: 'set', keyPlaceholder: 'sk-… (leave empty to send no Authorization header)',
     addModelTip: 'Add a model to the list', removeModelTip: 'Remove the current model from the list', modelPlaceholder: 'model id, Enter to confirm',
     capVision: 'vision', capImagegen: 'image-gen',
     groupDispatch: 'Dispatch', groupRuntime: 'Runtime', groupMultimodal: 'Multimodal',
     cardDispatch: { t: 'Dispatch policy', d: 'Tier and effort used when the orchestrator names none, plus tier clamping, failure escalation and the Agent preset mounted per tier.' },
     cardRuntime: { t: 'Execution & connection', d: 'Whether worker sessions run inside this instance or a separate process, the per-job timeout, and the address CC / Codex probes.' },
     cardMM: { t: 'Vision & image generation', d: "Lends the harness's text-only models eyes and a brush: describe_image, pasted-image transcription and generate_image all use these settings." },
-    cardCustomProv: { t: 'Custom providers', d: 'Bring your own API or local command; saved providers appear in the vision / image-gen selects above.' },
     modeDesc: { auto: 'auto · prefer hub', hub: 'hub · require hub', standalone: 'standalone' },
     save: 'Save', saved: 'Saved', jobs: 'Worker jobs', empty: 'No worker jobs yet.',
     detailSession: 'session', detailTurns: 'turns', detailEvents: 'events', detailLoading: 'loading…', detailToggle: 'Show/hide job details',
@@ -506,6 +474,8 @@ function WorkersPanel({ ctx }: { ctx: any }) {
   const [status, setStatus] = useState<any>(null);
   const [config, setConfig] = useState<any>(null);
   const [dynModels, setDynModels] = useState<Record<string, Array<{ value: string; label?: string }>>>({});
+  const [providers, setProviders] = useState<Array<{ id: string; name?: string }>>([]);
+  const [modelsByProvider, setModelsByProvider] = useState<Record<string, Array<{ value: string; label?: string }>>>({});
   const [presetRoster, setPresetRoster] = useState<{ defaultId?: string; presets: Array<{ id: string; name?: string; trust?: string }> }>({ presets: [] });
   // Labels are built at render, not at fetch, so they follow a locale switch.
   // A shipped preset's file carries its Chinese name only; the host localizes
@@ -520,13 +490,7 @@ function WorkersPanel({ ctx }: { ctx: any }) {
   ], [presetRoster, copy]);
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
-  const [provForm, setProvForm] = useState<{
-    originalId?: string; name: string; type: 'api' | 'cli'; models: string;
-    base_url: string; api_key: string; imagegen_model: string;
-    vision_command: string; imagegen_command: string;
-  } | null>(null);
   const [modelAdd, setModelAdd] = useState<string | null>(null);
-  const [testResult, setTestResult] = useState<{ key: string; ok?: boolean; steps?: any[]; error?: string; busy: boolean } | null>(null);
   const [integrationsCollapsed, toggleIntegrations] = useCollapseSection('integrations');
   const [globalConfigCollapsed, toggleGlobalConfig] = useCollapseSection('global-config');
   // Deliberately no default dispatch-target select here: CLI backends stay
@@ -623,13 +587,60 @@ function WorkersPanel({ ctx }: { ctx: any }) {
   }, [ghosts, withLang, probeOne, copy, locale]);
 
 
+  /** Model catalog for one host provider; cached per panel session. */
+  const loadModels = useCallback(async (provider: string, force = false): Promise<Array<{ value: string; label?: string }>> => {
+    if (provider === '') return [];
+    if (!force && modelsByProvider[provider] !== undefined) return modelsByProvider[provider];
+    const r = await get(`/models?provider=${encodeURIComponent(provider)}${force ? '&refresh=1' : ''}`).catch(() => null);
+    const list = r?.ok ? (r.models ?? []).map((x: any) => ({ value: x.id, label: x.name ?? x.id })) : [];
+    if (r?.ok) setModelsByProvider((m) => ({ ...m, [provider]: list }));
+    return list;
+  }, [get, modelsByProvider]);
+
+  /** One tier route: provider from the host catalog, model from that provider. */
+  const routeField = (tier: 'flash' | 'pro', label: string) => {
+    const pKey = `${tier}_provider`;
+    const mKey = `${tier}_model`;
+    const prov = config?.[pKey] ?? '';
+    const mod = config?.[mKey] ?? '';
+    const models = modelsByProvider[prov] ?? [];
+    const provOptions = prov !== '' && !providerOptions.some((o) => o.value === prov)
+      ? [...providerOptions, { value: prov, label: `${prov}${copy.notInCatalog}` }]
+      : providerOptions;
+    const options = mod !== '' && !models.some((o) => o.value === mod)
+      ? [...models, { value: mod, label: `${mod}${copy.notInCatalog}` }]
+      : models;
+    return (<>
+      <label style={S.field}><span style={S.fieldLabel}>{label} · provider</span>
+        <CustomSelect value={prov}
+          onChange={(p) => {
+            const next = modelsByProvider[p] ?? [];
+            const m = p === '' ? '' : (next[0]?.value ?? mod);
+            setConfig((c: any) => ({ ...c, [pKey]: p, [mKey]: m }));
+            applyPatch({ [pKey]: p, [mKey]: m });
+            void loadModels(p).then((list) => {
+              const picked = list.some((o) => o.value === m) ? m : (list[0]?.value ?? m);
+              if (picked !== m) {
+                setConfig((c: any) => ({ ...c, [mKey]: picked }));
+                applyPatch({ [mKey]: picked });
+              }
+            });
+          }}
+          options={[{ value: '', label: copy.routeDefault }, ...provOptions]} /></label>
+      <label style={S.field}><span style={S.fieldLabel}>{label} · model</span>
+        <CustomSelect value={mod}
+          onChange={(v) => { setConfig((c: any) => ({ ...c, [mKey]: v })); applyPatch({ [mKey]: v }); }}
+          options={options.length > 0 ? options : [{ value: '', label: copy.routeEmpty }]} /></label>
+    </>);
+  };
   const refreshAll = useCallback(async () => {
     try {
-      const [j, s, c, pr] = await Promise.all([get('/jobs'), get('/install/status'), get('/config'), get('/presets')]);
+      const [j, s, c, pr, pv] = await Promise.all([get('/jobs'), get('/install/status'), get('/config'), get('/presets'), get('/providers')]);
       if (j.ok) mergeJobs(j.jobs ?? []);
       if (s.ok) setStatus(s.status);
       if (c.ok) setConfig((prev: any) => prev ?? c.config);
       if (pr.ok) setPresetRoster({ defaultId: pr.defaultId, presets: pr.presets ?? [] });
+      if (pv.ok) setProviders(Array.isArray(pv.providers) ? pv.providers : []);
     } catch { /* instance restarting */ }
   }, [get, mergeJobs]);
 
@@ -663,32 +674,34 @@ function WorkersPanel({ ctx }: { ctx: any }) {
   /** Text/number inputs: track locally, apply on blur. */
   const fieldLocal = (key: string, value: any) => setConfig((c: any) => ({ ...c, [key]: value }));
 
-  // --- custom providers & user-added models -------------------------------
-  const customProviders: any[] = config?.custom_providers ?? [];
+  // --- host catalog & user-added models -----------------------------------
   const extraModels: Record<string, string[]> = config?.extra_models ?? {};
-  const RESERVED_IDS = ['claude-code', 'codex', 'grok', 'agy', 'off', 'custom', 'default'];
-  const provType = (p: any): 'api' | 'cli' => p.type ?? ((p.vision_command || p.imagegen_command) ? 'cli' : 'api');
-  const canSee = (p: any) => (provType(p) === 'cli' ? !!p.vision_command : !!p.base_url && (p.models?.length ?? 0) > 0);
-  const canDraw = (p: any) => (provType(p) === 'cli' ? !!p.imagegen_command : !!p.base_url && !!String(p.imagegen_model ?? '').trim());
-  const visionProviderOptions = [
-    { value: 'claude-code' }, { value: 'codex' }, { value: 'grok' }, { value: 'agy' },
-    ...customProviders.filter(canSee).map((p) => ({ value: p.id, label: p.name || p.id })),
-    { value: 'off' },
-  ];
+  /** Providers the host already configured; the panel never invents one. */
+  const providerOptions = providers.map((p) => ({ value: p.id, label: p.name || p.id }));
+  const visionProviderOptions = (() => {
+    const cur = config?.vision_provider ?? '';
+    const known = [{ value: 'claude-code' }, { value: 'codex' }, { value: 'grok' }, { value: 'agy' }, ...providerOptions, { value: 'off' }];
+    return cur !== '' && !known.some((o) => o.value === cur)
+      ? [...known, { value: cur, label: `${cur}${copy.notInCatalog}` }]
+      : known;
+  })();
   const imagegenProviderOptions = [
     { value: 'codex' }, { value: 'agy', label: 'agy (nano banana)' }, { value: 'grok', label: 'grok (imagine)' },
-    ...customProviders.filter(canDraw).map((p) => ({ value: p.id, label: p.name || p.id })),
     { value: 'off' },
   ];
   const visionModelOptions = (() => {
     if (!config) return [];
     const p = config.vision_provider;
-    const custom = customProviders.find((c) => c.id === p);
-    const base: Array<{ value: string; label?: string }> = custom
-      ? [{ value: 'default' }, ...(custom.models ?? []).map((m: string) => ({ value: m }))]
+    const isHost = providers.some((x) => x.id === p);
+    const base: Array<{ value: string; label?: string }> = isHost
+      ? (modelsByProvider[p] ?? [])
       : dynModels[p] ?? (VISION_MODELS[p] ?? ['default']).map((m) => ({ value: m }));
-    const extras = (extraModels[p] ?? []).filter((m) => !base.some((o) => o.value === m)).map((m) => ({ value: m }));
-    return [...base, ...extras];
+    const current = config.vision_model;
+    const withCurrent = current && !base.some((o) => o.value === current)
+      ? [...base, { value: current, label: `${current}${copy.notInCatalog}` }]
+      : base;
+    const extras = (extraModels[p] ?? []).filter((m) => !withCurrent.some((o) => o.value === m)).map((m) => ({ value: m }));
+    return [...withCurrent, ...extras];
   })();
   const commitModelAdd = () => {
     const m = (modelAdd ?? '').trim();
@@ -709,75 +722,6 @@ function WorkersPanel({ ctx }: { ctx: any }) {
     setConfig((c: any) => ({ ...c, extra_models: nextExtra, vision_model: fallback }));
     applyPatch({ extra_models: nextExtra, vision_model: fallback });
   };
-  const saveProviderForm = () => {
-    if (!provForm || !config) return;
-    const name = provForm.name.trim();
-    if (name === '') { setNotice(copy.needName); return; }
-    const models = provForm.models.split(/[,，\n]+/).map((s) => s.trim()).filter(Boolean);
-    const vision_command = provForm.vision_command.trim();
-    const imagegen_command = provForm.imagegen_command.trim();
-    if (provForm.type === 'cli') {
-      if (vision_command === '' && imagegen_command === '') { setNotice(copy.needCmd); return; }
-    } else {
-      if (provForm.base_url.trim() === '') { setNotice(copy.needBaseUrl); return; }
-      if (models.length === 0) { setNotice(copy.needModels); return; }
-    }
-    let id = provForm.originalId;
-    if (!id) {
-      const base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'provider';
-      id = base;
-      let n = 2;
-      while (RESERVED_IDS.includes(id) || customProviders.some((p) => p.id === id)) id = `${base}-${n++}`;
-    }
-    const entry = provForm.type === 'api'
-      ? {
-        id, name, type: 'api', models,
-        base_url: provForm.base_url.trim(),
-        api_key: provForm.api_key,
-        imagegen_model: provForm.imagegen_model.trim(),
-      }
-      : { id, name, type: 'cli', models, vision_command, imagegen_command };
-    const next = provForm.originalId
-      ? customProviders.map((p) => (p.id === provForm.originalId ? entry : p))
-      : [...customProviders, entry];
-    field('custom_providers', next);
-    setProvForm(null);
-  };
-  const runProviderTest = (key: string, entry: any) => {
-    setTestResult({ key, busy: true });
-    void post('/provider-test', entry)
-      .then((r) => setTestResult(r.ok
-        ? { key, busy: false, ok: r.result.ok, steps: r.result.steps }
-        : { key, busy: false, ok: false, error: r.error }))
-      .catch((e) => setTestResult({ key, busy: false, ok: false, error: String(e?.message ?? e) }));
-  };
-  /** Shared renderer for a test outcome under the button that triggered it. */
-  const testReport = (key: string) => {
-    if (!testResult || testResult.key !== key) return null;
-    if (testResult.busy) return <div style={{ fontSize: 11.5, opacity: 0.6 }}>{copy.testing}</div>;
-    return (
-      <div style={{ fontSize: 11.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{ color: testResult.ok ? '#3fb950' : '#f85149' }}>
-          {testResult.ok ? `✓ ${copy.testPass}` : `✗ ${copy.testFail}`}
-        </span>
-        {testResult.error && <span style={{ opacity: 0.7, wordBreak: 'break-all' as const }}>{testResult.error}</span>}
-        {(testResult.steps ?? []).map((st: any, i: number) => (
-          <span key={i} style={{ opacity: 0.7, wordBreak: 'break-all' as const }}>
-            <span style={{ color: st.ok ? '#3fb950' : '#f85149' }}>{st.ok ? '✓' : '✗'}</span> {st.name}: {st.detail}
-          </span>
-        ))}
-      </div>
-    );
-  };
-  const deleteProvider = (id: string) => {
-    if (!config) return;
-    const patch: any = { custom_providers: customProviders.filter((p) => p.id !== id) };
-    if (config.vision_provider === id) { patch.vision_provider = 'claude-code'; patch.vision_model = 'haiku'; }
-    if (config.imagegen_provider === id) patch.imagegen_provider = 'codex';
-    setConfig((c: any) => ({ ...c, ...patch }));
-    applyPatch(patch);
-  };
-
   /** Card: title + one-line description header, then its fields. */
   const block = (text: { t: string; d: string }, fields: any, gridded = true) => (
     <div style={S.block}>
@@ -934,6 +878,8 @@ function WorkersPanel({ ctx }: { ctx: any }) {
             <CustomSelect value={config.preset_flash ?? 'default'} onChange={(v) => field('preset_flash', v)} options={presetOptions} /></label>
           <label style={S.field}><span style={S.fieldLabel}>{copy.presetPro}</span>
             <CustomSelect value={config.preset_pro ?? 'default'} onChange={(v) => field('preset_pro', v)} options={presetOptions} /></label>
+          {routeField('flash', copy.routeFlash)}
+          {routeField('pro', copy.routePro)}
         </>))}
 
 
@@ -958,9 +904,23 @@ function WorkersPanel({ ctx }: { ctx: any }) {
           <label style={S.field}><span style={S.fieldLabel}>{copy.visionProvider}</span>
             <CustomSelect value={config.vision_provider}
               onChange={(p) => {
-                const custom = customProviders.find((c) => c.id === p);
-                const m = custom ? (custom.models?.[0] ?? 'default') : (VISION_MODELS[p] ?? ['default'])[0];
+                const isHost = providers.some((x) => x.id === p);
                 setModelAdd(null);
+                if (isHost) {
+                  const known = modelsByProvider[p] ?? [];
+                  const m = known[0]?.value ?? config.vision_model;
+                  setConfig((c: any) => ({ ...c, vision_provider: p, vision_model: m }));
+                  applyPatch({ vision_provider: p, vision_model: m });
+                  void loadModels(p).then((list) => {
+                    const picked = list.some((o) => o.value === m) ? m : (list[0]?.value ?? m);
+                    if (picked !== m) {
+                      setConfig((c: any) => ({ ...c, vision_model: picked }));
+                      applyPatch({ vision_model: picked });
+                    }
+                  });
+                  return;
+                }
+                const m = (VISION_MODELS[p] ?? ['default'])[0];
                 setConfig((c: any) => ({ ...c, vision_provider: p, vision_model: m }));
                 applyPatch({ vision_provider: p, vision_model: m });
                 if ((p === 'grok' || p === 'agy') && !dynModels[p]) {
@@ -1011,101 +971,6 @@ function WorkersPanel({ ctx }: { ctx: any }) {
               options={imagegenProviderOptions} /></label>
         </>))}
 
-        {block(copy.cardCustomProv, (<>
-          {customProviders.length === 0 && provForm === null && (
-            <div style={{ fontSize: 12, opacity: 0.5 }}>{copy.noCustomProviders}</div>
-          )}
-          {customProviders.map((p) => (
-            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5 }}>
-              <span style={{ fontWeight: 500 }}>{p.name || p.id}</span>
-              <span style={{ ...S.chip(false), opacity: 0.7 }}>{provType(p) === 'api' ? 'API' : 'CLI'}</span>
-              {canSee(p) && <span style={S.chip(true)}>{copy.capVision}</span>}
-              {canDraw(p) && <span style={S.chip(true)}>{copy.capImagegen}</span>}
-              {provType(p) === 'api' && !!p.api_key && <span style={{ fontSize: 11.5, opacity: 0.5 }}>key {copy.keySet}</span>}
-              <span style={{ flex: 1 }} />
-              <button style={{ ...S.btn, padding: '2px 8px' }} title={copy.testTip}
-                disabled={!!testResult?.busy}
-                onClick={() => runProviderTest(`row:${p.id}`, p)}>
-                {testResult?.key === `row:${p.id}` && testResult.busy ? copy.testing : copy.testProvider}</button>
-              <button style={{ ...S.btn, padding: '2px 8px' }}
-                onClick={() => setProvForm({
-                  originalId: p.id, name: p.name ?? p.id, type: provType(p),
-                  models: (p.models ?? []).join(', '),
-                  base_url: p.base_url ?? '', api_key: p.api_key ?? '', imagegen_model: p.imagegen_model ?? '',
-                  vision_command: p.vision_command ?? '', imagegen_command: p.imagegen_command ?? '',
-                })}>{copy.edit}</button>
-              <button style={{ ...S.btn, padding: '2px 8px', opacity: 0.75 }}
-                onClick={() => { if (confirm(copy.confirmDeleteProvider(p.name || p.id))) deleteProvider(p.id); }}>{copy.del}</button>
-            </div>
-          ))}
-          {customProviders.some((p) => testResult?.key === `row:${p.id}`) && testReport(testResult!.key)}
-          {provForm === null ? (
-            <div><button style={S.btn} onClick={() => setProvForm({
-              name: '', type: 'api', models: '', base_url: '', api_key: '', imagegen_model: '',
-              vision_command: '', imagegen_command: '',
-            })}>{copy.addProvider}</button></div>
-          ) : (
-            <div style={{ borderTop: '1px solid rgba(128,128,128,0.16)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={S.blockGrid}>
-                <label style={S.field}><span style={S.fieldLabel}>{copy.providerName}</span>
-                  <input autoFocus style={{ ...S.input, width: '100%', boxSizing: 'border-box' as const }}
-                    value={provForm.name} onChange={(e) => setProvForm({ ...provForm, name: e.target.value })} /></label>
-                <label style={S.field}><span style={S.fieldLabel}>{copy.providerType}</span>
-                  <CustomSelect value={provForm.type} onChange={(v) => setProvForm({ ...provForm, type: v as 'api' | 'cli' })}
-                    options={[{ value: 'api', label: copy.typeApi }, { value: 'cli', label: copy.typeCli }]} /></label>
-              </div>
-              {provForm.type === 'api' ? (<>
-                <div style={S.blockGrid}>
-                  <label style={S.field}><span style={S.fieldLabel}>{copy.baseUrl}</span>
-                    <input style={{ ...S.input, width: '100%', boxSizing: 'border-box' as const, ...S.mono }}
-                      value={provForm.base_url} placeholder="https://api.example.com/v1"
-                      onChange={(e) => setProvForm({ ...provForm, base_url: e.target.value })} /></label>
-                  <label style={S.field}><span style={S.fieldLabel}>{copy.apiKey}</span>
-                    <input type="password" autoComplete="off" style={{ ...S.input, width: '100%', boxSizing: 'border-box' as const, ...S.mono }}
-                      value={provForm.api_key} placeholder={copy.keyPlaceholder}
-                      onChange={(e) => setProvForm({ ...provForm, api_key: e.target.value })} /></label>
-                  <label style={S.field}><span style={S.fieldLabel}>{copy.modelsField}</span>
-                    <input style={{ ...S.input, width: '100%', boxSizing: 'border-box' as const, ...S.mono }}
-                      value={provForm.models} placeholder="gpt-4o-mini, qwen-vl-max"
-                      onChange={(e) => setProvForm({ ...provForm, models: e.target.value })} /></label>
-                  <label style={S.field}><span style={S.fieldLabel}>{copy.imagegenModel}</span>
-                    <input style={{ ...S.input, width: '100%', boxSizing: 'border-box' as const, ...S.mono }}
-                      value={provForm.imagegen_model} placeholder="dall-e-3"
-                      onChange={(e) => setProvForm({ ...provForm, imagegen_model: e.target.value })} /></label>
-                </div>
-                <div style={{ fontSize: 11.5, opacity: 0.55 }}>{copy.apiFormHint}</div>
-              </>) : (<>
-                <label style={S.field}><span style={S.fieldLabel}>{copy.visionCmd}</span>
-                  <input style={{ ...S.input, width: '100%', boxSizing: 'border-box' as const, ...S.mono }}
-                    value={provForm.vision_command} placeholder="mycli see {image} --ask {question} --model {model}"
-                    onChange={(e) => setProvForm({ ...provForm, vision_command: e.target.value })} /></label>
-                <label style={S.field}><span style={S.fieldLabel}>{copy.imagegenCmd}</span>
-                  <input style={{ ...S.input, width: '100%', boxSizing: 'border-box' as const, ...S.mono }}
-                    value={provForm.imagegen_command} placeholder="mycli gen {prompt} -o {output}"
-                    onChange={(e) => setProvForm({ ...provForm, imagegen_command: e.target.value })} /></label>
-                <label style={S.field}><span style={S.fieldLabel}>{copy.modelsField}</span>
-                  <input style={{ ...S.input, width: '100%', boxSizing: 'border-box' as const, ...S.mono }}
-                    value={provForm.models} placeholder="model-a, model-b"
-                    onChange={(e) => setProvForm({ ...provForm, models: e.target.value })} /></label>
-                <div style={{ fontSize: 11.5, opacity: 0.55 }}>{copy.cliFormHint}</div>
-              </>)}
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <button style={S.btn} onClick={saveProviderForm}>{copy.saveProvider}</button>
-                <button style={S.btn} title={copy.testTip} disabled={!!testResult?.busy}
-                  onClick={() => runProviderTest('form', {
-                    id: provForm.originalId ?? 'draft', name: provForm.name || 'draft', type: provForm.type,
-                    models: provForm.models.split(/[,，\n]+/).map((x) => x.trim()).filter(Boolean),
-                    base_url: provForm.base_url.trim(), api_key: provForm.api_key,
-                    imagegen_model: provForm.imagegen_model.trim(),
-                    vision_command: provForm.vision_command.trim(), imagegen_command: provForm.imagegen_command.trim(),
-                  })}>
-                  {testResult?.key === 'form' && testResult.busy ? copy.testing : copy.testProvider}</button>
-                <button style={{ ...S.btn, opacity: 0.75 }} onClick={() => setProvForm(null)}>{copy.cancel}</button>
-              </div>
-              {testReport('form')}
-            </div>
-          )}
-        </>), false)}
       </>)}
       <div style={{ fontSize: 11.5, opacity: 0.55, marginTop: 2 }}>{copy.globalHint}</div>
       </>)}

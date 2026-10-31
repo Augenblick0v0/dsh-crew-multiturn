@@ -864,6 +864,46 @@ function parseSince(value) {
 }
 
 /**
+ * GET /models?provider=<id> — the host's model catalog for one provider.
+ *
+ * The panel offers only routes DSH already knows, so it asks this instead of
+ * letting the user type a provider id. listModels() reaches the provider
+ * adapter (and possibly its network API), so successful answers are cached
+ * briefly; ?refresh=1 bypasses the cache.
+ */
+export function createModelsHandler(ctx) {
+  const CACHE_TTL_MS = 30_000;
+  const cache = new Map();
+  return async function modelsHandler(req, res) {
+    if (!isLoopbackRequest(req)) return sendJson(res, 403, { ok: false, error: 'loopback only' });
+    try {
+      const url = new URL(req.url, 'http://localhost');
+      const provider = (url.searchParams.get('provider') ?? '').trim();
+      const force = url.searchParams.get('refresh') === '1';
+      if (provider === '') return sendJson(res, 400, { ok: false, error: 'provider required' });
+      const known = ctx.llm.listProviders().some((p) => p.id === provider);
+      if (!known) return sendJson(res, 404, { ok: false, error: `unknown provider "${provider}"` });
+      const hit = cache.get(provider);
+      if (!force && hit !== undefined && Date.now() - hit.at < CACHE_TTL_MS) {
+        return sendJson(res, 200, { ok: true, provider, models: hit.models, cached: true });
+      }
+      let models = [];
+      let error;
+      try {
+        const listed = await ctx.llm.listModels(provider);
+        models = (listed ?? []).map((m) => ({ id: m.id, name: m.name ?? m.id }));
+      } catch (err) {
+        error = err?.message ?? String(err);
+      }
+      if (error === undefined) cache.set(provider, { at: Date.now(), models });
+      return sendJson(res, 200, { ok: true, provider, models, ...(error === undefined ? {} : { error }) });
+    } catch (err) {
+      return sendJson(res, 500, { ok: false, error: err?.message ?? String(err) });
+    }
+  };
+}
+
+/**
  * HTTP surface for the hub's job registry (C01/C03/T04).
  *
  * Exported and hub-parameterised so the routes can be driven by tests without
@@ -1128,6 +1168,11 @@ export async function apply(ctx) {
           return sendJson(res, 500, { ok: false, error: err?.message ?? String(err) });
         }
       },
+    }));
+
+    disposers.push(webServer.register({
+      kind: 'exact', path: `${ROUTE_BASE}/models`,
+      handler: createModelsHandler(ctx),
     }));
 
     disposers.push(webServer.register({

@@ -52,13 +52,13 @@ The plugin ships its own settings page and jobs board — no separate service.
 Open the DSH profile that has the plugin → `More` (bottom left) → `Settings` → `DSH Crew`:
 
 - **Integrations** — one-click install into Claude Code; Codex / Antigravity / Grok status
-- **Global configuration** — default tier, `tier_policy`, escalation, per-tier presets, execution mode
+- **Global configuration** — default tier, `tier_policy`, escalation, per-tier presets, execution mode; flash / pro / vision models are picked as **provider → model from the host's configured catalog**, never typed by hand (no custom-provider form)
 - **Runtime** — hub URL, `question_policy`, `idle_ttl_seconds`, `question_timeout_seconds`
 - **Jobs** — jobs grouped by workspace; open one to see every turn and the event tail (added here)
 
-> On this machine the plugin runs in the `crew` profile (`127.0.0.1:3099`). The main web UI
-> (`web` profile, port 3080) does **not** have the plugin, so no Crew panel there — worker sessions are
-> still visible as normal DSH sessions. See the last section to add the panel to 3080.
+> On this machine the plugin is installed in the main web UI's `web` profile (`127.0.0.1:3080`);
+> the separate 3099 workbench has been retired. Worker sessions are ordinary DSH sessions and stay
+> visible in the 3080 session list.
 
 ## Install
 
