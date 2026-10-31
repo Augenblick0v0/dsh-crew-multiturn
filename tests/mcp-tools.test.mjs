@@ -98,7 +98,7 @@ let server;
 const fakeHub = makeFakeHub();
 
 before(async () => {
-  server = createServer({ hub: fakeHub, hubAvailable: async () => true });
+  server = createServer({ hub: fakeHub, hubAvailable: async () => true, toolsProfile: 'full' });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   client = new Client({ name: 'mcp-tools-test', version: '0.0.0' });
   await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
@@ -115,7 +115,18 @@ async function callTool(name, args) {
   return { res, data: text === undefined ? undefined : JSON.parse(text) };
 }
 
-test('tools/list exposes exactly the nine documented tools', async () => {
+test('core profile exposes five tools; full exposes nine', async () => {
+  const core = createServer({ hub: fakeHub, hubAvailable: async () => true, toolsProfile: 'core' });
+  const [ct, st] = InMemoryTransport.createLinkedPair();
+  const c = new Client({ name: 'core-profile', version: '0.0.0' });
+  await Promise.all([c.connect(ct), core.connect(st)]);
+  const names = (await c.listTools()).tools.map((t) => t.name).sort();
+  assert.deepEqual(names, ['dsh_run_worker', 'dsh_worker_cancel', 'dsh_worker_message', 'dsh_worker_result', 'dsh_worker_status']);
+  await c.close().catch(() => {});
+  await core.close().catch(() => {});
+});
+
+test('full profile lists the nine documented tools', async () => {
   const { tools } = await client.listTools();
   const names = tools.map((t) => t.name).sort();
   assert.deepEqual(names, [
@@ -152,14 +163,17 @@ test('dsh_worker_message sends an ordinary follow-up when the job is idle', asyn
   assert.deepEqual(fakeHub.calls.message.at(-1), { id: HUB_JOB.id, message: 'one more thing', mode: 'steer' });
 });
 
-test('dsh_worker_result returns status, turns[], result and pendingQuestions[]', async () => {
+test('dsh_worker_result is brief by default and verbose returns turn records', async () => {
   const { data } = await callTool('dsh_worker_result', { job_id: HUB_JOB.id });
   assert.equal(data.status, 'idle');
-  assert.ok(Array.isArray(data.turns), 'turns is an array');
-  assert.equal(data.turns.length, 2);
+  assert.equal(data.turns, 2, 'brief shape carries the turn count');
   assert.deepEqual(data.result, { ok: true, text: 'finished' });
   assert.ok(Array.isArray(data.pendingQuestions));
   assert.equal(data.pendingQuestionCount, 0);
+
+  const full = await callTool('dsh_worker_result', { job_id: HUB_JOB.id, verbose: true });
+  assert.ok(Array.isArray(full.data.turns), 'verbose returns turn records');
+  assert.equal(full.data.turns.length, 2);
 });
 
 test('dsh_worker_status exposes turn/currentTool/pendingQuestions/lastEventAt', async () => {

@@ -4,6 +4,7 @@
 // and serves the one-click installer endpoints for the settings page.
 
 import { randomUUID } from 'node:crypto';
+import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { isAbsoluteCwd, canonicalCwd } from '../paths.mjs';
@@ -80,6 +81,17 @@ function seedLangFromHost(ctx) {
 import { setLang } from '../i18n.mjs';
 
 const ROUTE_BASE = '/_dsh/dsh-crew';
+
+/**
+ * The single workspace every worker session must live in (C05/T06). The
+ * installer writes `workspace_root` into the global config; a blank or
+ * non-absolute value means "no pinning" so an older config keeps working.
+ */
+export function workspaceRootOf(config) {
+  const root = config?.workspace_root;
+  if (typeof root !== 'string' || root.trim() === '' || !isAbsoluteCwd(root)) return null;
+  return canonicalCwd(root);
+}
 // Tier -> {provider, model}. The defaults live in tier-binding.mjs; the
 // caller may override per dispatch, and the hub's own config is the fallback
 // when it does not (the same shape the preset lookup below uses).
@@ -652,13 +664,19 @@ export class WorkerRegistry {
     if (!isAbsoluteCwd(cwd)) throw new Error('cwd must be an absolute path');
     // One canonical form for the job, the advisory lock and the workspace
     // lookup: D:/x and D:\x must map to the same workspace on Windows.
-    const cwdPath = canonicalCwd(cwd);
+    const requestedCwd = canonicalCwd(cwd);
+    const pinned = workspaceRootOf(this.getConfig?.() ?? {});
+    // Every worker session lives in the dsh-crew workspace. A caller that
+    // passes another directory is not an error: we pin and report the
+    // override, otherwise Codex's own cwd would scatter sessions again.
+    const cwdPath = pinned ?? requestedCwd;
+    const cwdIgnored = pinned !== null && pinned !== requestedCwd ? requestedCwd : undefined;
     await this.ctx.get('loader')?.await();
 
     const id = `hub-${this.nextId++}-${Date.now().toString(36)}`;
     const sessionId = `session-${randomUUID()}`;
     const job = {
-      id, sessionId, tier, model: resolvedModel, provider: resolvedProvider, effort, task, source, cwd: cwdPath,
+      id, sessionId, tier, model: resolvedModel, provider: resolvedProvider, effort, task, source, cwd: cwdPath, cwdIgnored,
       status: 'running', turn: 0, step: 0, currentTool: null, toolCalls: 0,
       tokens: { input: 0, output: 0, reasoning: 0 },
       startedAt: new Date().toISOString(), endedAt: null,
@@ -710,7 +728,7 @@ export class WorkerRegistry {
         // job cwd never inherits a parent directory's workspace).
         const registry = this.ctx.get('workspaceRegistry');
         if (registry !== undefined) {
-          const ws = (await registry.resolveByPath(cwdPath)) ?? (await registry.create(cwdPath));
+          const ws = (await registry.resolveByPath(cwdPath)) ?? (await registry.create(cwdPath, 'dsh-crew'));
           await ws.attachSession(sessionId);
         }
       } catch (err) {
@@ -1026,6 +1044,25 @@ export async function apply(ctx) {
   } catch (err) {
     ctx.logger?.warn?.(`dsh-crew: vision route unavailable: ${err?.message ?? err}`);
   }
+
+  // C05/T06: the workspace exists before the first dispatch, created by the
+  // plugin itself so installing dsh-crew is enough — no manual "add workspace".
+  ctx.inject(['workspaceRegistry'], (wsCtx) => {
+    void (async () => {
+      try {
+        const { readGlobalConfig } = await import('../install/install.mjs');
+        const root = workspaceRootOf(readGlobalConfig());
+        if (root === null) return;
+        await mkdir(root, { recursive: true });
+        if (!(await wsCtx.workspaceRegistry.resolveByPath(root))) {
+          await wsCtx.workspaceRegistry.create(root, 'dsh-crew');
+          wsCtx.logger?.info?.(`dsh-crew: workspace created at ${root}`);
+        }
+      } catch (err) {
+        wsCtx.logger?.warn?.(`dsh-crew: workspace bootstrap failed: ${err?.message ?? err}`);
+      }
+    })();
+  });
 
   ctx.inject(['webServer'], (webCtx) => {
     const webServer = webCtx.webServer;

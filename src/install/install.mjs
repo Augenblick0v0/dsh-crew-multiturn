@@ -115,6 +115,13 @@ export const GLOBAL_CONFIG_DEFAULTS = {
   question_policy: 'ask',
   idle_ttl_seconds: 1800,
   question_timeout_seconds: 900,
+  // C05/T06: one workspace for every worker session. The hub pins spawns to
+  // this directory and creates it (plus the DSH workspace entry) on install.
+  workspace_root: join(homedir(), 'dsh-workspaces', 'dsh-crew'),
+  // C06/T07: core = five tools, full = all nine; result_max_chars clips the
+  // text a tool returns to the model (0 = never clip).
+  tools_profile: 'core',
+  result_max_chars: 2000,
 };
 
 export function readGlobalConfig() {
@@ -129,6 +136,18 @@ export function writeGlobalConfig(patch) {
   }
   writeFileSync(GLOBAL_CONFIG_FILE, JSON.stringify(next, null, 2) + '\n');
   return next;
+}
+
+/**
+ * C05/T06: create the pinned workspace directory at install time. The DSH
+ * workspace entry itself is registered by the hub (it needs the host
+ * registry); this only guarantees the path exists before the first dispatch.
+ */
+export function ensureWorkspaceRoot() {
+  const root = readGlobalConfig().workspace_root;
+  if (typeof root !== 'string' || root.trim() === '') return null;
+  mkdirSync(root, { recursive: true });
+  return root;
 }
 
 /** What is currently installed where — drives the settings-page buttons. */
@@ -167,6 +186,7 @@ export function uninstallCodex({ home = homedir() } = {}) {
 }
 
 export async function installClaudeCode({ home = homedir(), statusline = false } = {}) {
+  ensureWorkspaceRoot();
   const actions = [];
 
   // The repo is its own marketplace: .claude-plugin/marketplace.json lists the
@@ -266,6 +286,8 @@ export async function installClaudeCode({ home = homedir(), statusline = false }
 
 export function installCodex({ home = homedir(), scope } = {}) {
   const actions = [];
+  const workspace = ensureWorkspaceRoot();
+  if (workspace) actions.push(`workspace: ${workspace}`);
   const agentsDir = scope === 'project' ? join(process.cwd(), '.codex', 'agents') : join(home, '.codex', 'agents');
   mkdirSync(agentsDir, { recursive: true });
   const srcDir = join(ROOT, 'codex', 'agents');

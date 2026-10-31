@@ -15,14 +15,14 @@ import { pathToFileURL } from 'node:url';
 import { readGlobalConfig } from './install/install.mjs';
 import { describeBindings, resolveTierBinding } from './tier-binding.mjs';
 
-export function createServer({ hub: injectedHub = hub, hubAvailable: hubReady = hubAvailable } = {}) {
+export function createServer({ hub: injectedHub = hub, hubAvailable: hubReady = hubAvailable, toolsProfile } = {}) {
 const hub = injectedHub;
 const server = new McpServer({ name: 'dsh-crew', version: '1.0.0' });
 
-const tierSchema = z.enum(['flash', 'pro']).optional().describe('Worker model tier. flash = mechanical, well-scoped work (single-file edits, lookups, formatting); pro = multi-file changes, debugging, design judgment. Omit to use the session default. Ignored when worker= is set.');
-const effortSchema = z.enum(['off', 'high', 'max']).optional().describe('Reasoning effort for the worker. Omit to use the session default. With worker= it only applies when passed explicitly and the profile supports it (agy maps to low/medium/high).');
-const workerSchema = z.string().optional().describe('Named CLI worker profile (e.g. "agy" or "grok"). Explicit opt-in only: set it when the user explicitly asks for that external coding CLI, never as a default. When set, dispatch bypasses tier/mode and runs the task through that CLI; the profile pins backend×model×effort. See dsh_worker_config output, worker_profiles field, for the available profiles.');
-const allowConcurrentCwdSchema = z.boolean().optional().describe('Allow this dispatch even though another running worker already holds the same cwd (workspace) lock. Default false: concurrent writers corrupt a shared repo, so the second dispatch is refused with the holder info instead of queueing. Set true only for read-only tasks.');
+const tierSchema = z.enum(['flash', 'pro']).optional().describe('flash: small scoped tasks; pro: multi-file or design work.');
+const effortSchema = z.enum(['off', 'high', 'max']).optional().describe('Reasoning effort; omit for the session default.');
+const workerSchema = z.string().optional().describe('External CLI profile (agy/grok); opt-in only. Bypasses tier and mode.');
+const allowConcurrentCwdSchema = z.boolean().optional().describe('Allow a second writer on the same cwd; read-only tasks only.');
 
 // Session-level configuration. This MCP server process lives exactly as long
 // as one Claude Code / Codex session, so plain memory IS session scope.
@@ -53,7 +53,15 @@ const sessionConfig = {
   question_policy: globalDefaults.question_policy ?? 'ask',
   idle_ttl_seconds: globalDefaults.idle_ttl_seconds ?? 1800,
   question_timeout_seconds: globalDefaults.question_timeout_seconds ?? 900,
+  // C05/T06: every worker lands in this workspace; the hub pins the cwd.
+  workspace_root: globalDefaults.workspace_root ?? '',
+  // C06/T07: core exposes 5 tools, full exposes all 9. Env wins so a single
+  // Codex session can opt in without editing the global config.
+  tools_profile: process.env.DSHPLUGIN_CREW_TOOLS ?? globalDefaults.tools_profile ?? 'core',
 };
+
+const FULL_TOOLS = String(toolsProfile ?? sessionConfig.tools_profile).toLowerCase() === 'full';
+const RESULT_CHARS = Number(process.env.DSHPLUGIN_CREW_RESULT_CHARS ?? globalDefaults.result_max_chars ?? 2000) || 2000;
 
 /** The {provider, model} this session dispatches `tier` to. */
 function bindingForTier(tier) {
@@ -96,29 +104,77 @@ function pendingQuestionsArray(view) {
   return [];
 }
 
-/** Stable dsh_worker_result shape: status, turns[], result, pendingQuestions[]. */
-function resultPayload(view) {
-  const { turnRecords, pendingQuestionDetails, ...rest } = view ?? {};
+/**
+ * C06/T07: brief result shape — status, turn counts, a clipped result and the
+ * pending question list (the caller needs those to answer). verbose returns
+ * the full record. Result text is clipped at RESULT_CHARS unless max_chars.
+ */
+function resultPayload(view, opts = {}) {
   const turns = turnsArray(view);
   const pendingQuestions = pendingQuestionsArray(view);
-  return { ...rest, turns, pendingQuestions, pendingQuestionCount: pendingQuestions.length };
+  const limit = Number.isFinite(opts.maxChars) ? opts.maxChars : RESULT_CHARS;
+  const maxChars = limit === 0 ? Infinity : limit;
+  if (opts.verbose) {
+    const { turnRecords, pendingQuestionDetails, ...rest } = view ?? {};
+    return { ...rest, turns, pendingQuestions, pendingQuestionCount: pendingQuestions.length };
+  }
+  let result = view?.result;
+  let truncated = false;
+  if (typeof result === 'string' && result.length > maxChars) {
+    result = result.slice(0, maxChars);
+    truncated = true;
+  }
+  return {
+    id: view?.id,
+    status: view?.status,
+    turn: view?.turn ?? turns.length,
+    turns: turns.length,
+    ...(result === undefined ? {} : { result }),
+    ...(truncated ? { result_truncated: true, result_chars: String(view.result).length } : {}),
+    pendingQuestions,
+    pendingQuestionCount: pendingQuestions.length,
+    ...(view?.error ? { error: String(view.error).slice(0, 500) } : {}),
+  };
 }
 
 /** Stable dsh_worker_status entry fields, including standalone/CLI jobs. */
-function statusPayload(view) {
-  const turns = Array.isArray(view?.turns)
-    ? view.turns.length
-    : Number.isFinite(view?.turns) ? view.turns : turnsArray(view).length;
-  const pendingQuestions = Array.isArray(view?.pendingQuestions)
-    ? view.pendingQuestions.length
-    : Number.isFinite(view?.pendingQuestions) ? view.pendingQuestions : 0;
+function countOf(value, fallback = 0) {
+  if (Array.isArray(value)) return value.length;
+  return Number.isFinite(value) ? value : fallback;
+}
+
+/**
+ * C06/T07: the default view is brief. A full `{...view}` carries turns[],
+ * capabilities and task text, which the model re-reads on every later turn;
+ * verbose is opt-in for the rare debugging case.
+ */
+function statusPayload(view, opts = {}) {
+  const turns = countOf(view?.turns, turnsArray(view).length);
+  const pendingQuestions = countOf(view?.pendingQuestions);
+  if (opts.verbose) {
+    return {
+      ...view,
+      turns,
+      turn: view?.turn ?? 0,
+      currentTool: view?.currentTool ?? null,
+      pendingQuestions,
+      lastEventAt: view?.lastEventAt ?? view?.activity?.lastEventAt ?? null,
+    };
+  }
   return {
-    ...view,
-    turns,
+    id: view?.id,
+    status: view?.status,
+    tier: view?.tier,
+    model: view?.model,
     turn: view?.turn ?? 0,
+    turns,
+    tokens: view?.tokens,
     currentTool: view?.currentTool ?? null,
     pendingQuestions,
     lastEventAt: view?.lastEventAt ?? view?.activity?.lastEventAt ?? null,
+    ...(view?.cwd === undefined ? {} : { cwd: view.cwd }),
+    ...(view?.cwdIgnored === undefined ? {} : { cwd_ignored: view.cwdIgnored }),
+    ...(view?.error ? { error: String(view.error).slice(0, 500) } : {}),
   };
 }
 
@@ -202,13 +258,13 @@ async function resolveMode() {
 
 server.registerTool('dsh_run_worker', {
   title: 'Run DSH worker (blocking)',
-  description: 'Run one DSH (DeepSeek Harness) coding agent task and block until it finishes. Tier guidance: flash for mechanical, well-scoped work (single-file edits, lookups, formatting); pro for multi-file changes, debugging, and design judgment. The task string must be self-contained: the worker has zero conversation context, so include absolute paths, exact acceptance criteria, and constraints. Set worker="agy" or "grok" only when the user explicitly asks for that CLI, never as a default. Guardrails refuse (never queue) worker→worker recursion beyond the origin-chain depth cap and a second writer on the same cwd; allow_concurrent_cwd: true only for read-only tasks.',
+  description: 'Run one self-contained task on a DSH worker and block until it stops. tier: flash for small scoped work, pro for multi-file or design work. Returns a brief job summary.',
   inputSchema: {
     task: z.string().describe('Full task description for the worker, self-contained'),
     tier: tierSchema,
     effort: effortSchema,
     worker: workerSchema,
-    cwd: z.string().optional().describe('Workspace directory for the worker. Relative paths resolve against the caller\'s current workspace; "." or "current" mean the current workspace. Omit for the current workspace.'),
+    cwd: z.string().optional().describe('Ignored when workspace_root is set; otherwise the worker directory.'),
     timeout_seconds: z.number().int().positive().max(7200).optional(),
     allow_concurrent_cwd: allowConcurrentCwdSchema,
   },
@@ -234,7 +290,7 @@ server.registerTool('dsh_run_worker', {
       throw err;
     }
     await waitJob(job.id, timeout * 1000);
-    const view = statusPayload(jobView(job, { withResult: true }));
+    const view = resultPayload(jobView(job, { withResult: true }));
     if (view.status === 'running') return text({ ...view, note: `still running after ${timeout}s; poll with dsh_worker_result` });
     return text(view);
   }
@@ -297,12 +353,13 @@ server.registerTool('dsh_run_worker', {
     if (job.status === 'running') return text({ ...job, escalated: true, note: `escalated to pro, still running after ${timeout}s; poll with dsh_worker_result` });
     return text({ ...job, escalated: true, flash_failure: String(firstError).slice(0, 200) });
   }
-  return text(job);
+  return text(resultPayload(job));
 });
 
+if (FULL_TOOLS) {
 server.registerTool('dsh_worker_probe', {
   title: 'Probe a configured worker model route',
-  description: 'Explicitly test one DSH-configured provider/model with a small no-op tool-call request. Requires the hub. Does not start a worker, touch files, or change bindings; it may consume one model request. A listed provider is not proof of agent/tool support. Results are observations at checked_at, not a permanent capability guarantee.',
+  description: 'Probe one configured LLM route with a minimal request and report whether it can run a worker.',
   inputSchema: { tier: z.enum(['flash', 'pro']).optional(), provider: z.string().optional(), model: z.string().optional() },
 }, async ({ tier, provider, model }) => {
   if (!(await hubReady())) return text({ status: 'hub_unavailable', tool_call_verified: false });
@@ -312,7 +369,7 @@ server.registerTool('dsh_worker_probe', {
 
 server.registerTool('dsh_worker_config', {
   title: 'Session worker configuration',
-  description: 'Read or update session-level worker settings: enable/disable dispatch, default tier/effort/timeout, execution mode (auto = prefer hub, hub = require the DSH hub, standalone = never use it), tier policy, failure escalation, and which LLM route each tier dispatches to. Call with no arguments to read. To run workers on a local model (Ollama and the like), configure that provider ONCE in DSH and then name it here with flash_provider/flash_model or pro_provider/pro_model — this plugin never defines providers of its own. available_providers lists what the host has configured (hub mode only); bindings shows what each tier currently resolves to. The output includes worker_profiles — the external-CLI backends (agy, grok) usable via the worker= parameter of dsh_run_worker / dsh_spawn_worker — and origin, the inherited worker→worker dispatch chain with its depth limit. Session-only.',
+  description: 'Read or patch this MCP session\'s worker config (tier, model route, timeouts, tools profile).',
   inputSchema: {
     enabled: z.boolean().optional().describe('false = refuse all worker dispatch this session'),
     default_tier: z.enum(['flash', 'pro']).optional(),
@@ -370,13 +427,13 @@ server.registerTool('dsh_worker_config', {
 
 server.registerTool('dsh_spawn_worker', {
   title: 'Spawn DSH worker (async)',
-  description: 'Start a DSH (DeepSeek Harness) coding agent in the background and return immediately with a job id — use it to fan out several workers in parallel. The spawn response carries claims, not results: always fetch each job\'s final result later with dsh_worker_result. Same tier guidance as dsh_run_worker: flash for mechanical, well-scoped work, pro for multi-file changes and debugging. The task string must be self-contained (absolute paths, acceptance criteria, constraints) — the worker sees nothing of your conversation. worker="agy" or "grok" only when the user explicitly asks for that CLI, never a default. Guardrails refuse (never queue) origin-chain recursion and a second writer on the same cwd; allow_concurrent_cwd: true only for read-only fan-out.',
+  description: 'Start a worker in the background and return its job id immediately. Follow with dsh_worker_result.',
   inputSchema: {
     task: z.string().describe('Full task description for the worker, self-contained — the worker has no conversation context, so include absolute paths, acceptance criteria and constraints'),
     tier: tierSchema,
     effort: effortSchema,
     worker: workerSchema,
-    cwd: z.string().optional().describe('Workspace directory for the worker. Relative paths resolve against the caller\'s current workspace; "." or "current" mean the current workspace. Omit for the current workspace.'),
+    cwd: z.string().optional().describe('Ignored when workspace_root is set; otherwise the worker directory.'),
     allow_concurrent_cwd: allowConcurrentCwdSchema,
   },
 }, async ({ task, tier, effort, worker, cwd, allow_concurrent_cwd }) => {
@@ -431,11 +488,28 @@ server.registerTool('dsh_spawn_worker', {
   }
 });
 
+}
 server.registerTool('dsh_worker_status', {
   title: 'DSH worker status',
-  description: 'List all DSH worker jobs in this session with live progress (turn/step, current tool, token usage) plus the cwd advisory locks (kind: "cwd-lock" entries show which workspace is held by which running job). Each job entry includes turn, currentTool, pendingQuestions and lastEventAt. Use it before dispatching into a busy workspace and to see whether spawned jobs are still running.',
-  inputSchema: {},
-}, async () => {
+  description: 'Brief status of worker jobs: turn, tokens, pending questions, last activity. Pass job_id + wait_seconds to long-poll one job.',
+  inputSchema: {
+    job_id: z.string().optional().describe('One job instead of the whole list'),
+    wait_seconds: z.number().int().min(0).max(600).default(0).describe('Long-poll this job until it settles or the wait expires'),
+    verbose: z.boolean().optional().describe('Full records instead of the brief shape'),
+  },
+}, async ({ job_id, wait_seconds, verbose }) => {
+  if (job_id) {
+    if (!job_id.startsWith('hub-')) {
+      const local = getJob(job_id);
+      return text(local ? statusPayload(jobView(local), { verbose }) : { error: `no such job: ${job_id}` });
+    }
+    if (!(await hubReady())) return text({ error: 'hub not reachable' });
+    const view = await hub.get(job_id, wait_seconds).catch((e) => ({ error: e.message }));
+    if (!view || !view.id) return text(view);
+    attachOrigin(view, view.id);
+    if (isTerminalJobStatus(view.status)) releaseCwdLockByJobId(job_id);
+    return text(statusPayload(view, { verbose }));
+  }
   const hubUp = await hubReady();
   const remote = hubUp ? await hub.list().catch(() => null) : [];
   const remoteJobs = remote ?? [];
@@ -459,39 +533,44 @@ server.registerTool('dsh_worker_status', {
     holder: l.holder,
     note: 'advisory workspace lock: a running worker holds this cwd, so a new dispatch to it is refused (unless allow_concurrent_cwd is set)',
   }));
-  return text([...remoteJobs, ...local, ...locks].map(statusPayload));
+  return text([
+    ...[...remoteJobs, ...local].map((j) => statusPayload(j, { verbose })),
+    ...locks,
+  ]);
 });
 
 server.registerTool('dsh_worker_result', {
   title: 'DSH worker result',
-  description: 'Fetch the final result of a worker job, optionally waiting up to wait_seconds. Returns {status, turns, result, pendingQuestions}: turns is always an array of turn records (empty for one-shot standalone/CLI jobs), and pendingQuestions is always an array of parked question details. Always call this for spawned jobs: the dsh_spawn_worker response returns only the job id and status claims, never the result. If a result seems missing or stale (for example after a hub restart orphaned the job), verify against the working tree and dsh_worker_status instead of trusting the summary.',
+  description: 'Result of one job, waiting up to wait_seconds. Default brief: status, turns count, result (truncated), pending question list.',
   inputSchema: {
     job_id: z.string(),
     wait_seconds: z.number().int().min(0).max(7200).default(0).describe('0 = return current state immediately'),
+    max_chars: z.number().int().min(0).max(200000).optional().describe('Clip the result text (default 2000, 0 = no limit)'),
+    verbose: z.boolean().optional().describe('Full record instead of the brief shape'),
   },
-}, async ({ job_id, wait_seconds }) => {
+}, async ({ job_id, wait_seconds, max_chars, verbose }) => {
   if (job_id.startsWith('hub-')) {
     if (!(await hubReady())) return text({ error: 'hub not reachable' });
     const view = await hub.get(job_id, wait_seconds).catch((e) => ({ error: e.message }));
     if (view && view.id) {
       attachOrigin(view, view.id);
       if (isTerminalJobStatus(view.status)) releaseCwdLockByJobId(job_id);
-      return text(resultPayload(view));
+      return text(resultPayload(view, { verbose, maxChars: max_chars }));
     }
     return text(view);
   }
   if (!getJob(job_id)) return text({ error: `no such job: ${job_id}` });
   const job = await waitJob(job_id, wait_seconds > 0 ? wait_seconds * 1000 : 1);
-  return text(resultPayload(jobView(job, { withResult: true })));
+  return text(resultPayload(jobView(job, { withResult: true }), { verbose, maxChars: max_chars }));
 });
 
 server.registerTool('dsh_worker_message', {
   title: 'Message a DSH worker',
-  description: 'Continue a DSH worker session without starting a new task: a follow-up on an idle/done/failed worker, a steer for a running one, or the answer to a parked question. When the job status is needs_input, the message is routed to /answer and the same turn resumes; otherwise it enters the worker as a new turn (mode: auto = steer while running, followup when idle, resume when done/failed; steer and followup are explicit overrides). Use this instead of re-dispatching a task when the user is answering a worker question or refining its work.',
+  description: 'Send a follow-up, an explicit steer, or the answer to a parked question. Default followup queues without interrupting.',
   inputSchema: {
     id: z.string().describe('Job id returned by dsh_spawn_worker / dsh_run_worker (hub ids start with "hub-")'),
     message: z.string().describe('The follow-up, steer instruction, or answer to the pending question'),
-    mode: z.enum(['auto', 'steer', 'followup']).optional().describe('How to deliver the message to a running/idle worker. Default auto. Ignored when the job is needs_input (it is treated as the answer).'),
+    mode: z.enum(['auto', 'steer', 'followup']).optional().default('followup').describe('followup (default, queues without interrupting) | steer (interrupts the current turn) | auto.'),
   },
 }, async ({ id, message, mode }) => {
   if (!message || !message.trim()) return text({ error: 'message must be a non-empty string' });
@@ -526,9 +605,10 @@ server.registerTool('dsh_worker_message', {
   });
 });
 
+if (FULL_TOOLS) {
 server.registerTool('dsh_worker_events', {
   title: 'DSH worker events',
-  description: 'Read the hub worker event ring buffer (seq/ts/type/data) for one job, optionally after a sequence number. Poll this for live progress without fetching the full result. Returns events, next (pass it as since next time), latest, and status; standalone/CLI jobs do not expose an event buffer and return an empty list.',
+  description: 'Incremental event log for one job since a sequence cursor.',
   inputSchema: {
     id: z.string().describe('Hub job id (starts with "hub-")'),
     since: z.number().int().min(0).default(0).describe('Return events with seq > since (default 0 = from the oldest retained event)'),
@@ -555,9 +635,10 @@ server.registerTool('dsh_worker_events', {
   });
 });
 
+}
 server.registerTool('dsh_worker_cancel', {
   title: 'Cancel DSH worker',
-  description: 'Cancel a running worker job: terminates its runtime process and releases its cwd lock. Use it when a workspace lock is held by a job that is stuck or no longer needed, so a new dispatch to that cwd can proceed.',
+  description: 'Cancel a running or idle worker job.',
   inputSchema: { job_id: z.string() },
 }, async ({ job_id }) => {
   if (job_id.startsWith('hub-')) {

@@ -60,6 +60,23 @@ Open the DSH profile that has the plugin → `More` (bottom left) → `Settings`
 > the separate 3099 workbench has been retired. Worker sessions are ordinary DSH sessions and stay
 > visible in the 3080 session list.
 
+## Workspace and token budget
+
+Every worker session lives in one workspace — `dsh-crew`, default
+`/root/dsh-workspaces/dsh-crew` (`workspace_root`). The installer creates the
+directory; the hub registers the workspace on start (`create(root, 'dsh-crew')`)
+and rewrites any caller-supplied `cwd` to it, reporting the ignored value as
+`cwd_ignored`.
+
+Tool schemas are re-sent on every model request, so the default
+`tools_profile=core` registers five tools; `full` adds
+spawn/events/config/probe. Results are brief by default: `status` returns
+jobId/status/turn/tokens/pending count, `result` clips at 2,000 characters
+(`max_chars`, 0 = no limit), and `verbose: true` gives the full record.
+`dsh_worker_message` defaults to `followup` (queues, does not interrupt); only
+an explicit `steer` cuts into the current turn. `dsh_worker_status` accepts
+`wait_seconds` so callers long-poll instead of looping.
+
 ## Install
 
 > Requires Node 22+, pnpm, and a working DSH install (`dsh` on `PATH`). Nothing is on npm yet — install from source.

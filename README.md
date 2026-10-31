@@ -35,7 +35,9 @@
 | worker 提问 | 销毁 worker，任务以 `needs_input` 结束，只能重派 | 问题**挂起**（`pendingQuestions[]`），用 `dsh_worker_message` 或 `POST /jobs/:id/answer` 回答，同一轮继续 |
 | 进度 | statusline 分片 | `GET /jobs/:id/events?since=` 500 条环形事件 + `turns[]`，DSH Web UI 直接渲染 |
 | 任务状态 | `done` / `failed` | `queued` → `running` → `idle` / `needs_input`，终态 `done` / `failed` / `cancelled` / `expired` |
-| MCP 工具 | 7 个 | 9 个（新增 `dsh_worker_message`、`dsh_worker_events`） |
+| MCP 工具 | 7 个 | 9 个（新增 `dsh_worker_message`、`dsh_worker_events`）；默认 `tools_profile=core` 只暴露 5 个，按需 `full` |
+| 工作区 | 跟随调用方 cwd，会话散落 | 固定工作区 `dsh-crew`（`/root/dsh-workspaces/dsh-crew`），安装时创建，派发时强制落位 |
+| token | 工具 schema 全量注入、结果原样返回 | 精简 schema（≤1,500 字符）、brief 结果（默认截 2,000 字符）、`wait_seconds` 长轮询 |
 | Codex 集成 | roles + prompts | roles 重写为多轮调度器，另带 `.codex-plugin` 包 |
 
 空闲 worker 默认保活 `idle_ttl_seconds`（1800 秒）；超时后用 `ctx.agents.resume()` 恢复，
@@ -56,6 +58,22 @@
 
 > 本机现在装在主 Web UI 的 `web` profile（`127.0.0.1:3080`），独立的 3099 工作台已停用。
 > worker 会话本来就是 DSH 的一等会话，在 3080 的会话列表里也能直接看到。
+
+## 工作区与 token 预算
+
+**唯一工作区。** 所有 worker 会话都落在 `dsh-crew` 工作区
+（默认 `/root/dsh-workspaces/dsh-crew`，由 `workspace_root` 配置）。安装插件时
+`ensureWorkspaceRoot()` 会创建目录，hub 启动时 `workspaceRegistry.create(root, 'dsh-crew')`
+注册工作区；派发时无论调用方传什么 `cwd` 都会被纠正为该目录，响应里的
+`cwd_ignored` 记录被忽略的原值。所以在 Codex、Claude Code 或 HTTP 面板发起的任务
+都集中在同一个工作区，会话不再散落。
+
+**token 预算。** MCP 工具的 schema 会随每次模型请求重发，所以默认只注册 5 个核心工具
+（`tools_profile=core`；`full` 才加 spawn/events/config/probe）。结果默认是 brief：
+`status` 只回 jobId/status/turn/tokens/待答问题数，`result` 默认截断 2,000 字符
+（`max_chars` 可调，`0` 为不限）；需要逐轮细节时用 `verbose: true`。
+`dsh_worker_message` 默认 `followup` 排队，不打断当前轮；只有显式 `steer` 才插话。
+`dsh_worker_status` 支持 `wait_seconds` 长轮询，替代反复轮询。
 
 ## 安装
 

@@ -1,18 +1,24 @@
 # DSH Crew MCP tools
 
 `dsh-crew` is a stdio MCP server (`node src/server.mjs`). One process lives for
-one orchestrator session. It exposes nine tools: seven original tools keep their
-existing inputs, and two multi-turn tools were added in T06.
+one orchestrator session. `tools_profile` decides the surface: **core**
+(default) exposes five tools — `dsh_run_worker`, `dsh_worker_message`,
+`dsh_worker_status`, `dsh_worker_result`, `dsh_worker_cancel` — and **full**
+adds `dsh_spawn_worker`, `dsh_worker_events`, `dsh_worker_config`,
+`dsh_worker_probe`. Tool schemas are re-sent on every model request, so core is
+the default token budget; opt into full with
+`DSHPLUGIN_CREW_TOOLS=full` or `dsh_worker_config({tools_profile:"full"})` in a
+fresh process.
 
 ## Tool table
 
 | Tool | Purpose | Inputs | Main return fields |
 | --- | --- | --- | --- |
-| `dsh_run_worker` | Run one worker task and block until it settles. | `task` (required), `tier`, `effort`, `worker`, `cwd`, `timeout_seconds`, `allow_concurrent_cwd` | job view + `result` / `error` / `stopReason` |
-| `dsh_spawn_worker` | Start a worker in the background and return its job id immediately. | `task` (required), `tier`, `effort`, `worker`, `cwd`, `allow_concurrent_cwd` | job view (id, status, turn, …) |
-| `dsh_worker_status` | List hub jobs, standalone jobs and cwd locks with live progress. | none | array of job views + `kind: "cwd-lock"` entries |
-| `dsh_worker_result` | Fetch a job's current/final state, optionally waiting. | `job_id` (required), `wait_seconds` (default 0) | `{ status, turns, result, pendingQuestions, … }` |
-| `dsh_worker_message` | Continue a worker session: follow-up, steer, or answer a parked question. | `id` (required), `message` (required), `mode` = `auto` \| `steer` \| `followup` | `{ action, job, note? }` |
+| `dsh_run_worker` | Run one worker task and block until it settles. | `task` (required), `tier`, `effort`, `worker`, `cwd` (ignored when `workspace_root` is set), `timeout_seconds`, `allow_concurrent_cwd` | brief result (`id`, `status`, `turn`, `turns`, `result`, …) |
+| `dsh_spawn_worker` | Start a worker in the background and return its job id immediately. | `task` (required), `tier`, `effort`, `worker`, `cwd`, `allow_concurrent_cwd` | brief job view (id, status, turn, …) |
+| `dsh_worker_status` | Brief status of all jobs, or long-poll one job. | optional `job_id`, `wait_seconds` (≤600), `verbose` | array of brief entries + `kind: "cwd-lock"` entries |
+| `dsh_worker_result` | Fetch a job's current/final state, optionally waiting. | `job_id` (required), `wait_seconds` (default 0), `max_chars` (default 2000, 0 = no limit), `verbose` | `{ id, status, turn, turns, result, pendingQuestions, … }` |
+| `dsh_worker_message` | Continue a worker session: follow-up, steer, or answer a parked question. | `id` (required), `message` (required), `mode` = `followup` (default) \| `steer` \| `auto` | `{ action, job, note? }` |
 | `dsh_worker_events` | Read the hub event ring buffer after a sequence cursor. | `id` (required), `since` (default 0) | `{ events, next, latest, status }` |
 | `dsh_worker_cancel` | Cancel a running job and release its cwd lock. | `job_id` (required) | job view |
 | `dsh_worker_config` | Read or update session-level worker settings. | optional patches; `reset` | full session config + bindings/providers |
@@ -20,16 +26,24 @@ existing inputs, and two multi-turn tools were added in T06.
 
 ### `dsh_worker_result` shape
 
-Every result normalises to the same four fields:
+Every result is **brief by default** — turn records, capabilities and the task
+text are omitted because the model re-reads them on every later request:
 
 ```json
 {
+  "id": "hub-1-abc",
   "status": "idle",
-  "turns": [{ "index": 1, "status": "idle" }],
-  "result": { "ok": true },
-  "pendingQuestions": [{ "questionId": "q-1", "question": "Which colour?" }]
+  "turn": 2,
+  "turns": 2,
+  "result": "final answer (clipped at 2000 chars)",
+  "pendingQuestions": [{ "questionId": "q-1", "question": "Which colour?" }],
+  "pendingQuestionCount": 1
 }
 ```
+
+`verbose: true` returns the full record (`turns[]` as objects, `turnRecords`,
+`pendingQuestionDetails`). `result_truncated: true` plus `result_chars` says the
+text was clipped; raise `max_chars`, or read the tail with `dsh_worker_events`.
 
 `turns` is always an array of turn records (`[]` for standalone/CLI jobs, which
 are one-shot). `pendingQuestions` is always an array of question details; the
