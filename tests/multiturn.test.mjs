@@ -274,6 +274,24 @@ test('bad input and unknown jobs are rejected before any work starts', async () 
   assert.equal(job.turns.length, 1, 'only the spawn turn exists');
 });
 
+test('parking a question wakes a hub waiter immediately', async () => {
+  const { ctx } = makeFakeCtx();
+  const reg = new WorkerRegistry(ctx, quiet);
+  const job = await reg.spawn({ task: 'first task', tier: 'flash', cwd: '/tmp/fixture' });
+  await tick();
+  await tick();
+  assert.equal(job.status, 'running');
+
+  const started = Date.now();
+  const waiting = reg.wait(job.id, 5_000);
+  await tick();
+  reg.addPendingQuestion(job, { id: 'q-wake', question: 'Proceed?' });
+  const settled = await waiting;
+
+  assert.equal(settled.status, 'needs_input');
+  assert.ok(Date.now() - started < 1_000, 'wait must wake on the parked question, not the timeout');
+});
+
 test('cancel rejects every pending question and clears the queue', async () => {
   const { ctx } = makeFakeCtx();
   const reg = new WorkerRegistry(ctx, quiet);

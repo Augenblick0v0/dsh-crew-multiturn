@@ -199,6 +199,10 @@ export class WorkerRegistry {
       v.result = job.result; v.error = job.error; v.stopReason = job.stopReason;
       v.reasonDetail = job.reasonDetail;
       v.turnRecords = job.turns ?? [];
+      // A one-line tail for dsh_worker_wait's `last_event`; the list view
+      // deliberately stays lean, so only the with-result shape carries it.
+      const last = job.events?.at(-1);
+      v.lastEvent = last ? { seq: last.seq, ts: last.ts, type: last.type, summary: last.summary } : null;
       v.pendingQuestionDetails = (job.pendingQuestions ?? []).map((q) => ({
         questionId: q.questionId ?? q.id, question: q.question, ...(q.detail === undefined ? {} : { detail: q.detail }),
       }));
@@ -355,6 +359,9 @@ export class WorkerRegistry {
       id: q.questionId ?? q.id, question: q.question, ...(q.detail === undefined ? {} : { detail: q.detail }),
     }));
     this.recordEvent(job, 'question/pending', { questionId });
+    // A wait parked on this job must wake now: the question blocks the turn
+    // until a human answers, so no later event would settle the waiter.
+    this.settleWaiters(job);
     this.publish();
     return entry;
   }

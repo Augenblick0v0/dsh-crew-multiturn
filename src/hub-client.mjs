@@ -53,6 +53,40 @@ async function call(path, init) {
  */
 const MAX_POLL_SLICE_SECONDS = 60;
 
+/** One long-poll slice: at most 60 s, at least 1 s (a 0 s slice would spin). */
+export function sliceSeconds(remainingMs) {
+  return Math.max(1, Math.min(MAX_POLL_SLICE_SECONDS, Math.ceil(remainingMs / 1000)));
+}
+
+const SETTLED_STATUSES = new Set(['idle', 'done', 'failed', 'cancelled', 'expired']);
+
+function pendingQuestionCount(view) {
+  const pending = view?.pendingQuestions;
+  if (Array.isArray(pending)) return pending.length;
+  return Number.isFinite(pending) ? pending : 0;
+}
+
+/**
+ * Has the job reached the requested stop state?
+ *
+ * A parked question always stops the wait: no further waiting can make
+ * progress until a human answers it, so even `until=settled` returns instead
+ * of burning the whole timeout. `turn_end` additionally stops when a new turn
+ * has started past the turn observed when the wait began — the job may be
+ * `running` again by then, which is exactly the queue case it exists for.
+ */
+export function reachedTarget(view, { until = 'settled', startTurn = 0 } = {}) {
+  if (!view) return false;
+  const status = view.status;
+  if (status === 'needs_input' || pendingQuestionCount(view) > 0) return true;
+  if (SETTLED_STATUSES.has(status)) return true;
+  if (until === 'needs_input') return false;
+  if (until === 'turn_end') return (view.turn ?? 0) > startTurn;
+  return false;
+}
+
+const sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
+
 export const hub = {
   probe: (binding) => call('/worker-probe', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(binding) }).then(b => b.result),
   spawn: (spec) => call('/jobs', {
@@ -74,10 +108,52 @@ export const hub = {
   get: async (id, waitSeconds = 0) => {
     const deadline = Date.now() + waitSeconds * 1000;
     for (;;) {
-      const remaining = Math.ceil((deadline - Date.now()) / 1000);
-      const slice = waitSeconds <= 0 ? 0 : Math.max(1, Math.min(MAX_POLL_SLICE_SECONDS, remaining));
+      const slice = waitSeconds <= 0 ? 0 : sliceSeconds(deadline - Date.now());
       const job = await call(`/jobs/${id}?wait=${slice}`).then((b) => b.job);
       if (job.status !== 'running' || waitSeconds <= 0 || Date.now() >= deadline) return job;
+    }
+  },
+  /**
+   * Block until the job reaches `until` (settled | needs_input | turn_end) or
+   * the timeout expires. Uses only the existing `GET /jobs/:id?wait=` route:
+   * every request is a <=60 s slice and slices are separated by pollMs, so no
+   * proxy/runtime cuts a long request and no side ever busy-waits. Returns the
+   * last view plus whether the wait timed out; it never mutates the job.
+   */
+  waitFor: async (id, { until = 'settled', timeoutSeconds = 600, pollMs = 1000 } = {}) => {
+    const deadline = Date.now() + timeoutSeconds * 1000;
+    const jobPath = `/jobs/${encodeURIComponent(id)}`;
+    // A wait slice is a whole number of seconds, so a sub-second remainder
+    // cannot be requested. Abort the request itself at the deadline instead:
+    // the wall-clock wait then never overshoots timeoutSeconds by a slice.
+    const request = async (path) => {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) return null;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), Math.max(1, remaining));
+      try {
+        return await call(path, { signal: controller.signal });
+      } catch (err) {
+        if (controller.signal.aborted) return null;
+        throw err;
+      } finally {
+        clearTimeout(timer);
+      }
+    };
+    const baseline = await request(`${jobPath}?wait=0`);
+    let job = baseline?.job;
+    if (!job) return { job: null, timed_out: true };
+    const startTurn = job?.turn ?? 0;
+    if (reachedTarget(job, { until, startTurn })) return { job, timed_out: false };
+    for (;;) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) return { job, timed_out: true };
+      const body = await request(`${jobPath}?wait=${sliceSeconds(remaining)}`);
+      if (!body) return { job, timed_out: true };
+      job = body.job;
+      if (reachedTarget(job, { until, startTurn })) return { job, timed_out: false };
+      if (Date.now() >= deadline) return { job, timed_out: true };
+      await sleep(Math.min(pollMs, Math.max(0, deadline - Date.now())));
     }
   },
   cancel: (id) => call(`/jobs/${encodeURIComponent(id)}/cancel`, { method: 'POST' }).then((b) => b.job),

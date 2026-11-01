@@ -26,7 +26,7 @@ async function connect(opts = {}) {
   return { client, server };
 }
 
-test('tool descriptions and parameter docs stay within the 1,500 character budget', async () => {
+test('tool descriptions and parameter docs stay within the 1,700 character budget', async () => {
   const { client, server } = await connect();
   const { tools } = await client.listTools();
   let chars = 0;
@@ -34,8 +34,19 @@ test('tool descriptions and parameter docs stay within the 1,500 character budge
     chars += t.description.length;
     for (const p of Object.values(t.inputSchema.properties ?? {})) chars += (p.description ?? '').length;
   }
-  assert.equal(tools.length, 5, 'core profile exposes five tools');
-  assert.ok(chars <= 1500, `schema prose is ${chars} chars, budget is 1500`);
+  assert.equal(tools.length, 6, 'core profile exposes six tools');
+  assert.ok(chars <= 1700, `schema prose is ${chars} chars, budget is 1700`);
+  await client.close(); await server.close();
+});
+
+test('dsh_worker_wait defaults to 600 seconds and the settled target', async () => {
+  const { client, server } = await connect();
+  const { tools } = await client.listTools();
+  const tool = tools.find((t) => t.name === 'dsh_worker_wait');
+  assert.ok(tool, 'dsh_worker_wait is in the core profile');
+  assert.equal(tool.inputSchema.properties.timeout_seconds.default, 600);
+  assert.equal(tool.inputSchema.properties.until.default, 'settled');
+  assert.deepEqual(tool.inputSchema.properties.until.enum, ['settled', 'needs_input', 'turn_end']);
   await client.close(); await server.close();
 });
 

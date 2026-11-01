@@ -2,9 +2,9 @@
 
 - 安装/验证日期：2026-10-31（Asia/Shanghai）
 - Codex CLI：`codex-cli 0.162.1`（`/usr/bin/codex` → `/usr/lib/node_modules/@openai/codex/bin/codex.js`）
-- 仓库：`/root/dsh-crew`，分支 `feat/multiturn`
+- 仓库：`/root/dsh-crew`，分支 `main`
 - 接入决策：`DECISION: agent-role`（依据见 [codex-surface.md](./codex-surface.md)）
-- 三条路径共用同一个 MCP server：`node /root/dsh-crew/src/server.mjs`（stdio；默认 `core` 5 个 `dsh_*` 工具，`full` 9 个）
+- 三条路径共用同一个 MCP server：`node /root/dsh-crew/src/server.mjs`（stdio；默认 `core` 6 个 `dsh_*` 工具，`full` 10 个）
 
 本文件给出三条安装路径、每条的实测验证输出、回滚命令，以及 `~/.codex/config.toml` 的备份规则。
 路径 A 是默认（DECISION）；路径 B/C 是备选，只在需要 marketplace 分发或无法投放 agent role 时使用。
@@ -19,6 +19,17 @@
 2. 客观重型：改 **≥3 个文件**、预计 **>10 分钟**、有 **≥2 个可并行的独立子任务**，或需要长时间构建/测试循环。
 
 单文件、单命令、几行修改、一次性问答，**永不派发**；不确定就自己做，不问“要不要派”。派发时必须在回复里写一句触发条件，写不出就不该派。完整规则见 `~/.codex/AGENTS.md` 的「任务分派策略」。
+
+## 等待而不轮询
+
+一次派发只留一次阻塞等待，不要循环查状态：
+
+1. `dsh_run_worker` 返回 “still running”，或 `dsh_spawn_worker` 拿到 `hub-*` jobId 后，正常路径在**同一个 exec 单元**里只调用一次 `dsh_worker_wait(job_id, timeout_seconds=600)`。
+2. exec 头必须按公式写 `yield_time_ms = timeout_seconds × 1000 + 30000`（600 秒示例：`// @exec: {"yield_time_ms": 630000}`）：600 秒等待配 630000 毫秒；`dsh_worker_wait` 最大 900 秒配 930000；`dsh_run_worker` 默认 1800 秒配 1830000。多出的 30 秒留给结果回传；yield 小于等待时长会提前返回 “Script running”，这次等待就白费。
+3. 返回 `timed_out: true` 时报告当前 `status` / `turn`，不再自动等待；重派或继续等必须由用户明确要求。
+4. 返回 `status=needs_input` 时，立即用 `dsh_worker_message` 回答 `pending_questions`，然后在同一 exec 单元再调用一次 `dsh_worker_wait` 等这一轮继续跑，不要重派。
+
+禁止循环 `dsh_worker_status` / `dsh_worker_events` / `dsh_worker_result`：每次轮询都是一次完整请求，重复计费。
 
 ## 安装包内容
 
@@ -38,8 +49,12 @@ codex/
 ```
 
 两个 role 的 `developer_instructions` 都写明了多轮协议：worker 返回 `needs_input` 时必须用
-`dsh_worker_message`（同一个 jobId）回答并继续，**不得重派** `dsh_run_worker`；每轮结束必须汇报
-`jobId` / `sessionId` / `turn`。role 内嵌的 `[mcp_servers.dsh-crew]` 段固定为：
+`dsh_worker_message`（同一个 jobId）回答，**不得重派** `dsh_run_worker`，回答后再调用一次
+`dsh_worker_wait` 等这一轮继续跑；worker 返回 `still running` 时正常路径只调用一次
+`dsh_worker_wait`（`timeout_seconds=600`，exec 头按公式 `timeout_seconds × 1000 + 30000` 写
+630000；wait 最大 900→930000，run 默认 1800→1830000），不得循环
+`dsh_worker_status` / `dsh_worker_events`；`timed_out: true` 只报告当前 `status` / `turn`，不再自动等；每轮结束必须汇报 `jobId` / `sessionId` / `turn`。role 内嵌的
+`[mcp_servers.dsh-crew]` 段固定为：
 
 ```toml
 [mcp_servers.dsh-crew]
@@ -125,6 +140,8 @@ for f in ["/root/.codex/agents/ds-flash.toml", "/root/.codex/agents/ds-pro.toml"
           "timeout=", s.get("tool_timeout_sec"))
     assert "needs_input" in d["developer_instructions"]
     assert "dsh_worker_message" in d["developer_instructions"]
+    assert "dsh_worker_wait" in d["developer_instructions"]
+    assert "yield_time_ms" in d["developer_instructions"]
 print("toml OK")
 PY
 ```
@@ -180,23 +197,23 @@ CODEX_HOME=/tmp/t08-role-canary codex app-server --listen off 2>&1 | grep -i "du
 
 ### 验证 4：MCP server 本身可用
 
-role 里挂的就是仓库的 stdio server，直接握手确认 9 个工具：
+role 里挂的就是仓库的 stdio server。默认 `core` 面 6 个工具；`DSHPLUGIN_CREW_TOOLS=full` 时 10 个：
 
 ```bash
 printf '%s\n' \
   '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"t08","version":"0"}}}' \
   '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
   '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
-  | node /root/dsh-crew/src/server.mjs
+  | DSHPLUGIN_CREW_TOOLS=full node /root/dsh-crew/src/server.mjs
 ```
 
-实测（解析后的摘要）：
+实测（解析后的摘要，2026-11-01）：
 
 ```text
-initialize: {'name': 'dsh-crew', 'version': '0.1.0-rc.14'}
-tools: 9 ['dsh_run_worker', 'dsh_spawn_worker', 'dsh_worker_cancel', 'dsh_worker_config',
-          'dsh_worker_events', 'dsh_worker_message', 'dsh_worker_probe',
-          'dsh_worker_result', 'dsh_worker_status']
+initialize: {'name': 'dsh-crew', 'version': '1.0.0'}
+tools: 10 ['dsh_run_worker', 'dsh_spawn_worker', 'dsh_worker_cancel', 'dsh_worker_config',
+           'dsh_worker_events', 'dsh_worker_message', 'dsh_worker_probe',
+           'dsh_worker_result', 'dsh_worker_status', 'dsh_worker_wait']
 ```
 
 ### 关于 `codex mcp list` / `codex debug prompt-input`
@@ -401,7 +418,7 @@ codex mcp list                                                          # 应无
 | 4 | `node /root/dsh-crew/src/install/cli.mjs codex` | 两个 role + 三个 prompt 安装成功，`args` 重写为 `/root/dsh-crew/src/server.mjs` |
 | 5 | `CODEX_HOME=/root/.codex codex app-server --listen off` | 无 role 解析错误；仅历史字段警告 + 预期的 `no transport configured` |
 | 6 | duplicate canary（`ds-flash` / `ds-pro`） | 均报 `duplicate agent role name ...`，证明 role 已注册 |
-| 7 | MCP 握手 `tools/list` | `dsh-crew 0.1.0-rc.14`，9 个 `dsh_*` 工具 |
+| 7 | MCP 握手 `tools/list` | `dsh-crew 1.0.0`：core 6 个 / full 10 个 `dsh_*` 工具（含 `dsh_worker_wait`） |
 | 8 | `codex plugin list`（真实环境） | 仅 `openai-bundled` / `openai-api-curated`；路径 B 在隔离 `CODEX_HOME` 完整验证（见上） |
 | 9 | `diff -u config.toml.bak-20261030 config.toml` | 空 diff（路径 A 不修改配置） |
 

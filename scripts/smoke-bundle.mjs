@@ -20,10 +20,11 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-// Two surfaces: core (default, five tools - the token budget) and full
-// (DSHPLUGIN_CREW_TOOLS=full, all nine).
+// Two surfaces: core (default, six tools - the token budget) and full
+// (DSHPLUGIN_CREW_TOOLS=full, all ten).
 const CORE_TOOLS = [
   'dsh_run_worker',
+  'dsh_worker_wait',
   'dsh_worker_status',
   'dsh_worker_result',
   'dsh_worker_message',
@@ -34,6 +35,7 @@ const FULL_TOOLS = [
   'dsh_worker_config',
   'dsh_worker_probe',
   'dsh_spawn_worker',
+  'dsh_worker_wait',
   'dsh_worker_status',
   'dsh_worker_result',
   'dsh_worker_cancel',
@@ -149,7 +151,7 @@ try {
   }
   console.log('[smoke:mcp] core tools/list OK: ' + names.length + ' tools: ' + names.join(', '));
 
-  // 3b. Opt into the full surface and confirm all nine are registered.
+  // 3b. Opt into the full surface and confirm all ten are registered.
   switching = true;
   child.kill();
   await new Promise((r) => setTimeout(r, 250));

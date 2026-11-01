@@ -118,7 +118,7 @@ export const GLOBAL_CONFIG_DEFAULTS = {
   // C05/T06: one workspace for every worker session. The hub pins spawns to
   // this directory and creates it (plus the DSH workspace entry) on install.
   workspace_root: join(homedir(), 'dsh-workspaces', 'dsh-crew'),
-  // C06/T07: core = five tools, full = all nine; result_max_chars clips the
+  // C06/T07: core = six tools, full = all ten; result_max_chars clips the
   // text a tool returns to the model (0 = never clip).
   tools_profile: 'core',
   result_max_chars: 2000,

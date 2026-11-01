@@ -55,13 +55,14 @@ const sessionConfig = {
   question_timeout_seconds: globalDefaults.question_timeout_seconds ?? 900,
   // C05/T06: every worker lands in this workspace; the hub pins the cwd.
   workspace_root: globalDefaults.workspace_root ?? '',
-  // C06/T07: core exposes 5 tools, full exposes all 9. Env wins so a single
+  // C06/T07: core exposes 6 tools, full exposes all 10. Env wins so a single
   // Codex session can opt in without editing the global config.
   tools_profile: process.env.DSHPLUGIN_CREW_TOOLS ?? globalDefaults.tools_profile ?? 'core',
 };
 
 const FULL_TOOLS = String(toolsProfile ?? sessionConfig.tools_profile).toLowerCase() === 'full';
-const RESULT_CHARS = Number(process.env.DSHPLUGIN_CREW_RESULT_CHARS ?? globalDefaults.result_max_chars ?? 2000) || 2000;
+const RESULT_CHARS_RAW = Number(process.env.DSHPLUGIN_CREW_RESULT_CHARS ?? globalDefaults.result_max_chars ?? 2000);
+const RESULT_CHARS = Number.isFinite(RESULT_CHARS_RAW) && RESULT_CHARS_RAW >= 0 ? RESULT_CHARS_RAW : 2000;
 
 /** The {provider, model} this session dispatches `tier` to. */
 function bindingForTier(tier) {
@@ -134,6 +135,45 @@ function resultPayload(view, opts = {}) {
     pendingQuestions,
     pendingQuestionCount: pendingQuestions.length,
     ...(view?.error ? { error: String(view.error).slice(0, 500) } : {}),
+  };
+}
+
+/**
+ * dsh_worker_wait's fixed shape: exactly the seven fields the model needs to
+ * decide "done / answer / keep going". The result is previewed at RESULT_CHARS
+ * so a huge answer cannot blow the next request; the full text stays available
+ * through dsh_worker_result. An empty result stays null rather than "".
+ */
+const QUESTION_PREVIEW_CHARS = 500;
+
+function waitPayload(view, timedOut) {
+  let preview = null;
+  const raw = view?.result;
+  const limit = RESULT_CHARS === 0 ? Infinity : RESULT_CHARS;
+  if (typeof raw === 'string') {
+    if (raw.length > 0) preview = raw.slice(0, limit);
+  } else if (raw !== undefined && raw !== null) {
+    const serialized = JSON.stringify(raw);
+    if (typeof serialized === 'string' && serialized.length > 0) preview = serialized.slice(0, limit);
+  }
+  const details = Array.isArray(view?.pendingQuestionDetails) ? view.pendingQuestionDetails : [];
+  const pending = details.map((q) => ({
+    questionId: q?.questionId ?? q?.id ?? null,
+    question: String(q?.question ?? '').slice(0, QUESTION_PREVIEW_CHARS),
+  }));
+  if (pending.length === 0 && Array.isArray(view?.pendingQuestions)) {
+    for (const q of view.pendingQuestions) {
+      if (typeof q === 'string') pending.push({ questionId: null, question: q.slice(0, QUESTION_PREVIEW_CHARS) });
+    }
+  }
+  return {
+    id: view?.id,
+    status: view?.status,
+    turn: view?.turn ?? 0,
+    timed_out: !!timedOut,
+    last_event: view?.lastEvent ?? (view?.activity?.lastEventAt ? { at: view.activity.lastEventAt } : null),
+    result_preview: preview,
+    pending_questions: pending,
   };
 }
 
@@ -489,6 +529,39 @@ server.registerTool('dsh_spawn_worker', {
 });
 
 }
+
+server.registerTool('dsh_worker_wait', {
+  title: 'Wait for a DSH worker (block once)',
+  description: 'Block until a worker job settles, needs input, or ends a turn. Call once on the normal path instead of polling status/events.',
+  inputSchema: {
+    job_id: z.string().describe('Hub job id (starts with "hub-")'),
+    timeout_seconds: z.number().int().min(1).max(900).default(600).describe('Max seconds to wait (default 600, max 900)'),
+    until: z.enum(['settled', 'needs_input', 'turn_end']).default('settled').describe('settled (default) | needs_input | turn_end'),
+  },
+}, async ({ job_id, timeout_seconds, until }) => {
+  const timeout = timeout_seconds ?? 600;
+  const target = until ?? 'settled';
+  if (job_id.startsWith('hub-')) {
+    if (!(await hubReady())) return text({ error: 'hub not reachable' });
+    try {
+      const waited = await hub.waitFor(job_id, { until: target, timeoutSeconds: timeout });
+      const view = waited?.job;
+      if (!view || !view.id) return text({ error: `no such job: ${job_id}` });
+      attachOrigin(view, job_id);
+      if (isTerminalJobStatus(view.status)) releaseCwdLockByJobId(job_id);
+      return text(waitPayload(view, waited.timed_out));
+    } catch (err) {
+      return text(hubErrorPayload(err));
+    }
+  }
+  const job = getJob(job_id);
+  if (!job) return text({ error: `no such job: ${job_id}` });
+  if (target !== 'settled') return text({ error: 'until is only supported for hub jobs' });
+  const settled = await waitJob(job_id, timeout * 1000);
+  const view = jobView(settled, { withResult: true });
+  return text(waitPayload(view, settled.status === 'running'));
+});
+
 server.registerTool('dsh_worker_status', {
   title: 'DSH worker status',
   description: 'Brief status of worker jobs: turn, tokens, pending questions, last activity. Pass job_id + wait_seconds to long-poll one job.',

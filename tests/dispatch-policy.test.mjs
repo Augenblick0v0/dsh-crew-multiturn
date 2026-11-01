@@ -22,3 +22,38 @@ test('both role descriptions gate dispatch on an explicit trigger', () => {
     assert.doesNotMatch(toml, /Spawn for harder subtasks/);
   }
 });
+
+// T03/C04: every shipped prompt surface teaches one blocking wait, not a polling loop.
+test('shipped prompt surfaces name dsh_worker_wait and the exec yield', () => {
+  const surfaces = [
+    'codex/agents/ds-pro.toml',
+    'codex/agents/ds-flash.toml',
+    'codex/prompts/dsh-playbook.md',
+    'docs/install-codex.md',
+  ];
+  for (const f of surfaces) {
+    const text = read(f);
+    assert.match(text, /dsh_worker_wait/, `${f} must name dsh_worker_wait`);
+    assert.match(text, /yield_time_ms/, `${f} must state the exec yield`);
+  }
+});
+
+test('prompt surfaces keep the wait semantics: timeout stops, needs_input resumes once', () => {
+  for (const f of ['codex/agents/ds-pro.toml', 'codex/agents/ds-flash.toml']) {
+    const toml = read(f);
+    assert.match(toml, /dsh_worker_wait/);
+    assert.match(toml, /timeout_seconds` 600/);
+    assert.match(toml, /\/\/ @exec: \{"yield_time_ms": 630000\}/);
+    assert.match(toml, /930000/);
+    assert.match(toml, /1830000/);
+    assert.match(toml, /timed_out: true[\s\S]*do not wait again/);
+    assert.match(toml, /needs_input[\s\S]*dsh_worker_wait` once/);
+    assert.doesNotMatch(toml, /dsh_worker_result` once with wait_seconds 600/);
+  }
+  const doc = read('docs/install-codex.md');
+  assert.match(doc, /等待而不轮询/);
+  assert.match(doc, /timeout_seconds × 1000 \+ 30000/);
+  assert.match(doc, /"yield_time_ms": 630000/);
+  assert.match(doc, /timed_out: true[\s\S]*不再自动等待/);
+  assert.match(doc, /needs_input[\s\S]*dsh_worker_wait/);
+});

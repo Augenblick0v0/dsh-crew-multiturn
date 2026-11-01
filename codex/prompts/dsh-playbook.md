@@ -40,6 +40,7 @@ Bad: "fix the auth bug". Good: "In /abs/path/repo/src/auth.ts the token refresh 
 ## 4. Verifying results
 
 - Trust artifacts, not claims. Check which files actually changed (git status / git diff) and run the verify scripts or tests the brief demanded.
+- Wait once, do not poll: on the normal path call `dsh_worker_wait` once with `timeout_seconds` 600 inside one exec unit headed `// @exec: {"yield_time_ms": 630000}` (formula `timeout_seconds*1000 + 30000`: 900→930000, run default 1800→1830000). If `timed_out: true`, report `status`/`turn` and do not wait again; `needs_input` means answering with `dsh_worker_message` immediately, then one more wait for the resumed turn.
 - A hub restart can orphan a job that then looks finished: if a result seems missing or stale, verify against the working tree and re-check dsh_worker_status before trusting the summary.
 - Require workers to report unverified claims honestly ("I did not run the tests") rather than simulating success. A "done" summary is not proof.
 
@@ -55,6 +56,7 @@ Bad: "fix the auth bug". Good: "In /abs/path/repo/src/auth.ts the token refresh 
 | `dsh_run_worker` | Run one task and block until it finishes; flash for mechanical work, pro for judgment. |
 | `dsh_spawn_worker` | Start a task in the background for fan-out; returns a job id, not a result. |
 | `dsh_worker_status` | Live progress of all jobs plus the cwd advisory locks. |
-| `dsh_worker_result` | Fetch a job's final result, optionally waiting wait_seconds. |
+| `dsh_worker_wait` | Block once until the job settles, needs input, or ends a turn; use it instead of polling. |
+| `dsh_worker_result` | Fetch a job's final result. |
 | `dsh_worker_cancel` | Terminate a running job and release its cwd lock. |
 | `dsh_worker_config` | Read/set session defaults (default_tier, default_effort, mode, default_timeout_seconds, tier_policy, escalate_on_failure) and list worker_profiles. |

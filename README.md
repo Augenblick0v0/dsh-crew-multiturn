@@ -35,9 +35,9 @@
 | worker 提问 | 销毁 worker，任务以 `needs_input` 结束，只能重派 | 问题**挂起**（`pendingQuestions[]`），用 `dsh_worker_message` 或 `POST /jobs/:id/answer` 回答，同一轮继续 |
 | 进度 | statusline 分片 | `GET /jobs/:id/events?since=` 500 条环形事件 + `turns[]`，DSH Web UI 直接渲染 |
 | 任务状态 | `done` / `failed` | `queued` → `running` → `idle` / `needs_input`，终态 `done` / `failed` / `cancelled` / `expired` |
-| MCP 工具 | 7 个 | 9 个（新增 `dsh_worker_message`、`dsh_worker_events`）；默认 `tools_profile=core` 只暴露 5 个，按需 `full` |
+| MCP 工具 | 7 个 | 10 个（新增 `dsh_worker_wait`、`dsh_worker_message`、`dsh_worker_events`）；默认 `tools_profile=core` 只暴露 6 个，按需 `full` |
 | 工作区 | 跟随调用方 cwd，会话散落 | 固定工作区 `dsh-crew`（`/root/dsh-workspaces/dsh-crew`），安装时创建，派发时强制落位 |
-| token | 工具 schema 全量注入、结果原样返回 | 精简 schema（≤1,500 字符）、brief 结果（默认截 2,000 字符）、`wait_seconds` 长轮询 |
+| token | 工具 schema 全量注入、结果原样返回 | 精简 schema（≤1,700 字符）、brief 结果（默认截 2,000 字符）、`dsh_worker_wait` 单次阻塞等待 |
 | Codex 集成 | roles + prompts | roles 重写为多轮调度器，另带 `.codex-plugin` 包；**默认不派发**，只在点名或 ≥3 文件 / >10 分钟 / 多路并行时才用 |
 
 空闲 worker 默认保活 `idle_ttl_seconds`（1800 秒）；超时后用 `ctx.agents.resume()` 恢复，
@@ -68,12 +68,12 @@
 `cwd_ignored` 记录被忽略的原值。所以在 Codex、Claude Code 或 HTTP 面板发起的任务
 都集中在同一个工作区，会话不再散落。
 
-**token 预算。** MCP 工具的 schema 会随每次模型请求重发，所以默认只注册 5 个核心工具
+**token 预算。** MCP 工具的 schema 会随每次模型请求重发，所以默认只注册 6 个核心工具
 （`tools_profile=core`；`full` 才加 spawn/events/config/probe）。结果默认是 brief：
 `status` 只回 jobId/status/turn/tokens/待答问题数，`result` 默认截断 2,000 字符
 （`max_chars` 可调，`0` 为不限）；需要逐轮细节时用 `verbose: true`。
 `dsh_worker_message` 默认 `followup` 排队，不打断当前轮；只有显式 `steer` 才插话。
-`dsh_worker_status` 支持 `wait_seconds` 长轮询，替代反复轮询。
+`dsh_worker_wait` 单次阻塞等待替代 `dsh_worker_status` 长轮询。
 
 ## 安装
 
@@ -169,6 +169,7 @@ worker 需要你拍板时不会死，而是挂起问题：
 |---|---|
 | `dsh_run_worker` | 派发并等第一轮结果 |
 | `dsh_spawn_worker` | 异步派发，返回 job id |
+| `dsh_worker_wait` | 单次阻塞等待：settled / needs_input / turn_end，默认 600 秒、上限 900 |
 | `dsh_worker_message` | 同一 job 的下一轮：`auto`（运行中 steer、空闲 followup、已结束 resume）、`steer`、`followup` |
 | `dsh_worker_status` | 状态、轮次、当前工具、token、待答问题 |
 | `dsh_worker_result` | `{status, turns, result, pendingQuestions}` |
@@ -208,7 +209,7 @@ Codex / Claude Code / Antigravity
 
 - DSH `0.2.1-rc.4`（依赖它的 `SubagentProvider` / `AgentFactory` / `user-questions` seam）。
 - Codex `0.162.1`（agent roles + MCP server；插件包在 `codex/plugin/`）。
-- `pnpm test` → 79 个测试全过。
+- `pnpm test` → 116 个测试全过。
 - 版本从 **`1.0.0`** 起（本仓库自有版本线，与上游 `0.1.0-rc.x` 无关）。
   **暂未发 npm、暂未建 Release、暂未打 tag**——先测。
 
@@ -237,11 +238,11 @@ sudo systemctl restart dsh-web
 ```text
 src/hub/index.mjs      worker 注册表、轮次状态机、路由
 src/worker-question.mjs 提问挂起（ask）与上游 handoff
-src/server.mjs         MCP server，9 个工具
+src/server.mjs         MCP server，10 个工具
 src/hub-client.mjs     loopback 客户端（wait 切片）
 src/client/index.tsx   DSH Web UI：设置页、任务看板、轮次与事件尾部
 codex/                 角色、prompt、插件包
-tests/                 node:test 测试（79）
+tests/                 node:test 测试（116）
 ```
 
 ## 许可与署名

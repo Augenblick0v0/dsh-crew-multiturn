@@ -115,18 +115,18 @@ async function callTool(name, args) {
   return { res, data: text === undefined ? undefined : JSON.parse(text) };
 }
 
-test('core profile exposes five tools; full exposes nine', async () => {
+test('core profile exposes six tools; full exposes ten', async () => {
   const core = createServer({ hub: fakeHub, hubAvailable: async () => true, toolsProfile: 'core' });
   const [ct, st] = InMemoryTransport.createLinkedPair();
   const c = new Client({ name: 'core-profile', version: '0.0.0' });
   await Promise.all([c.connect(ct), core.connect(st)]);
   const names = (await c.listTools()).tools.map((t) => t.name).sort();
-  assert.deepEqual(names, ['dsh_run_worker', 'dsh_worker_cancel', 'dsh_worker_message', 'dsh_worker_result', 'dsh_worker_status']);
+  assert.deepEqual(names, ['dsh_run_worker', 'dsh_worker_cancel', 'dsh_worker_message', 'dsh_worker_result', 'dsh_worker_status', 'dsh_worker_wait']);
   await c.close().catch(() => {});
   await core.close().catch(() => {});
 });
 
-test('full profile lists the nine documented tools', async () => {
+test('full profile lists the ten documented tools', async () => {
   const { tools } = await client.listTools();
   const names = tools.map((t) => t.name).sort();
   assert.deepEqual(names, [
@@ -139,6 +139,7 @@ test('full profile lists the nine documented tools', async () => {
     'dsh_worker_probe',
     'dsh_worker_result',
     'dsh_worker_status',
+    'dsh_worker_wait',
   ]);
 });
 
