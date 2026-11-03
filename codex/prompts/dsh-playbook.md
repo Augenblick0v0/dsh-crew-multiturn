@@ -40,7 +40,7 @@ Bad: "fix the auth bug". Good: "In /abs/path/repo/src/auth.ts the token refresh 
 ## 4. Verifying results
 
 - Trust artifacts, not claims. Check which files actually changed (git status / git diff) and run the verify scripts or tests the brief demanded.
-- Wait once, do not poll: on the normal path call `dsh_worker_wait` once with `timeout_seconds` 600 inside one exec unit headed `// @exec: {"yield_time_ms": 630000}` (formula `timeout_seconds*1000 + 30000`: 900→930000, run default 1800→1830000). If `timed_out: true`, report `status`/`turn` and do not wait again; `needs_input` means answering with `dsh_worker_message` immediately, then one more wait for the resumed turn.
+- Wait, do not poll: on the normal path call `dsh_worker_wait` with `timeout_seconds` 1800 inside one exec unit headed `// @exec: {"yield_time_ms": 1830000}` (formula `timeout_seconds*1000 + 30000`). `timed_out: true` means "not finished yet", not failure — wait again, up to 3 waits per job. `stalled: true` (20 min without a hub event) means steer the worker once to write its `report_path`, then wait one more segment. Never call `dsh_worker_cancel`: a cancelled job cannot be resumed and its result is lost. `needs_input` means answering with `dsh_worker_message` immediately, then one more wait for the resumed turn.
 - A hub restart can orphan a job that then looks finished: if a result seems missing or stale, verify against the working tree and re-check dsh_worker_status before trusting the summary.
 - Require workers to report unverified claims honestly ("I did not run the tests") rather than simulating success. A "done" summary is not proof.
 

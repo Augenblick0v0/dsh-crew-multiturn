@@ -24,9 +24,12 @@
 
 一次派发只留一次阻塞等待，不要循环查状态：
 
-1. `dsh_run_worker` 返回 “still running”，或 `dsh_spawn_worker` 拿到 `hub-*` jobId 后，正常路径在**同一个 exec 单元**里只调用一次 `dsh_worker_wait(job_id, timeout_seconds=600)`。
-2. exec 头必须按公式写 `yield_time_ms = timeout_seconds × 1000 + 30000`（600 秒示例：`// @exec: {"yield_time_ms": 630000}`）：600 秒等待配 630000 毫秒；`dsh_worker_wait` 最大 900 秒配 930000；`dsh_run_worker` 默认 1800 秒配 1830000。多出的 30 秒留给结果回传；yield 小于等待时长会提前返回 “Script running”，这次等待就白费。
-3. 返回 `timed_out: true` 时报告当前 `status` / `turn`，不再自动等待；重派或继续等必须由用户明确要求。
+1. `dsh_run_worker` 返回 “still running”，或 `dsh_spawn_worker` 拿到 `hub-*` jobId 后，正常路径在**同一个 exec 单元**里调用 `dsh_worker_wait(job_id, timeout_seconds=1800)`。
+2. exec 头必须按公式写 `yield_time_ms = timeout_seconds × 1000 + 30000`（1800 秒示例：`// @exec: {"yield_time_ms": 1830000}`）。多出的 30 秒留给结果回传；yield 小于等待时长会提前返回 “Script running”，这次等待就白费。
+3. 返回 `timed_out: true` 只表示“还没结束”，不是失败：可以继续等，单个 job 最多 3 段（首段 1800 秒之外再等约 90 分钟）。
+4. 返回 `stalled: true`（20 分钟无 hub 事件）时，用 `dsh_worker_message`（mode `steer`）让 worker 把当前进展写入它的 `report_path`，然后再等一段。
+5. **禁止调用 `dsh_worker_cancel`**：取消不可恢复、结果必然丢失。只有 `failed` / `cancelled` / `expired` 才允许重派。
+6. 汇报超时或停滞前，先读 `report_path` 指向的 `REPORT.md` 并转述其内容——这是唯一能扛过客户端超时的交付物。
 4. 返回 `status=needs_input` 时，立即用 `dsh_worker_message` 回答 `pending_questions`，然后在同一 exec 单元再调用一次 `dsh_worker_wait` 等这一轮继续跑，不要重派。
 
 禁止循环 `dsh_worker_status` / `dsh_worker_events` / `dsh_worker_result`：每次轮询都是一次完整请求，重复计费。
@@ -51,9 +54,8 @@ codex/
 两个 role 的 `developer_instructions` 都写明了多轮协议：worker 返回 `needs_input` 时必须用
 `dsh_worker_message`（同一个 jobId）回答，**不得重派** `dsh_run_worker`，回答后再调用一次
 `dsh_worker_wait` 等这一轮继续跑；worker 返回 `still running` 时正常路径只调用一次
-`dsh_worker_wait`（`timeout_seconds=600`，exec 头按公式 `timeout_seconds × 1000 + 30000` 写
-630000；wait 最大 900→930000，run 默认 1800→1830000），不得循环
-`dsh_worker_status` / `dsh_worker_events`；`timed_out: true` 只报告当前 `status` / `turn`，不再自动等；每轮结束必须汇报 `jobId` / `sessionId` / `turn`。role 内嵌的
+`dsh_worker_wait`（`timeout_seconds=1800`，exec 头按公式 `timeout_seconds × 1000 + 30000` 写
+1830000），不得循环 `dsh_worker_status` / `dsh_worker_events`；`timed_out: true` 表示还没结束，可再等（最多 3 段）；`stalled: true` 时 steer 让 worker 写 `REPORT.md` 后再等；禁止 `dsh_worker_cancel`；每轮结束必须汇报 `jobId` / `sessionId` / `turn` 与 `report_path`。role 内嵌的
 `[mcp_servers.dsh-crew]` 段固定为：
 
 ```toml

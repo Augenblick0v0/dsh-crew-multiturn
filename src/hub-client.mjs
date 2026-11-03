@@ -53,6 +53,21 @@ async function call(path, init) {
  */
 const MAX_POLL_SLICE_SECONDS = 60;
 
+/**
+ * C01: a hub job that records no event for this long is probably wedged (a
+ * retry loop, a dead runtime), not busy — a healthy long tool call still emits
+ * its own start event. The wait stops early and says so; it never cancels.
+ */
+export const STALL_QUIET_SECONDS = 1200;
+
+/** Seconds since the hub last recorded an event, or null when unknowable. */
+export function quietSecondsOf(view) {
+  const last = view?.lastEventAt ?? view?.activity?.lastEventAt;
+  const t = last ? Date.parse(last) : NaN;
+  if (!Number.isFinite(t)) return null;
+  return Math.max(0, Math.round((Date.now() - t) / 1000));
+}
+
 /** One long-poll slice: at most 60 s, at least 1 s (a 0 s slice would spin). */
 export function sliceSeconds(remainingMs) {
   return Math.max(1, Math.min(MAX_POLL_SLICE_SECONDS, Math.ceil(remainingMs / 1000)));
@@ -145,6 +160,10 @@ export const hub = {
     if (!job) return { job: null, timed_out: true };
     const startTurn = job?.turn ?? 0;
     if (reachedTarget(job, { until, startTurn })) return { job, timed_out: false };
+    const quietAtStart = quietSecondsOf(job);
+    if (job.status === 'running' && quietAtStart !== null && quietAtStart >= STALL_QUIET_SECONDS) {
+      return { job, timed_out: true, stalled: true, quiet_seconds: quietAtStart };
+    }
     for (;;) {
       const remaining = deadline - Date.now();
       if (remaining <= 0) return { job, timed_out: true };
@@ -152,6 +171,10 @@ export const hub = {
       if (!body) return { job, timed_out: true };
       job = body.job;
       if (reachedTarget(job, { until, startTurn })) return { job, timed_out: false };
+      if (job.status === 'running') {
+        const quiet = quietSecondsOf(job);
+        if (quiet !== null && quiet >= STALL_QUIET_SECONDS) return { job, timed_out: true, stalled: true, quiet_seconds: quiet };
+      }
       if (Date.now() >= deadline) return { job, timed_out: true };
       await sleep(Math.min(pollMs, Math.max(0, deadline - Date.now())));
     }

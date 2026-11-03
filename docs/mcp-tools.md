@@ -15,7 +15,7 @@ budget; opt into full with `DSHPLUGIN_CREW_TOOLS=full` or
 | Tool | Purpose | Inputs | Main return fields |
 | --- | --- | --- | --- |
 | `dsh_run_worker` | Run one worker task and block until it settles. | `task` (required), `tier`, `effort`, `worker`, `cwd` (ignored when `workspace_root` is set), `timeout_seconds`, `allow_concurrent_cwd` | brief result (`id`, `status`, `turn`, `turns`, `result`, …) |
-| `dsh_worker_wait` | Block once until a job settles, needs input, or ends a turn. Use instead of polling status/events. | `job_id` (required), `timeout_seconds` (default 600, max 900), `until` = `settled` (default) \| `needs_input` \| `turn_end` | `{ id, status, turn, timed_out, last_event, result_preview, pending_questions }` |
+| `dsh_worker_wait` | Block once until a job settles, needs input, or ends a turn. Use instead of polling status/events. | `job_id` (required), `timeout_seconds` (default 1800, max 1800), `until` = `settled` (default) \| `needs_input` \| `turn_end` | `{ id, status, turn, timed_out, stalled?, quiet_seconds?, report_path?, last_event, result_preview, pending_questions }` |
 | `dsh_spawn_worker` | Start a worker in the background and return its job id immediately. | `task` (required), `tier`, `effort`, `worker`, `cwd`, `allow_concurrent_cwd` | brief job view (id, status, turn, …) |
 | `dsh_worker_status` | Brief status of all jobs, or long-poll one job. | optional `job_id`, `wait_seconds` (≤600), `verbose` | array of brief entries + `kind: "cwd-lock"` entries |
 | `dsh_worker_result` | Fetch a job's current/final state, optionally waiting. | `job_id` (required), `wait_seconds` (default 0), `max_chars` (default 2000, 0 = no limit), `verbose` | `{ id, status, turn, turns, result, pendingQuestions, … }` |
@@ -78,13 +78,26 @@ The return object has exactly these keys:
 }
 ```
 
-`timeout_seconds` defaults to 600 and is capped at 900. Waiting reuses the
+`timeout_seconds` defaults to 1800 and is capped at 1800. Waiting reuses the
 existing `GET /jobs/:id?wait=` route in slices of at most 60 seconds with a
 1-second gap between slices; it never polls `/events`. On timeout the current
-view is returned with `timed_out: true` and the job is left untouched. Call it
-**once on the normal path** after a dispatch returns "still running"; do not loop
-`dsh_worker_status` / `dsh_worker_events` / `dsh_worker_result`. When
-`needs_input` arrives, answer via `dsh_worker_message`, then wait once more.
+view is returned with `timed_out: true` and the job is left untouched; that flag
+means "not finished yet", not "failed", so the caller may wait again (the Codex
+roles allow up to three waits per job). Call it on the normal path after a
+dispatch returns "still running"; do not loop `dsh_worker_status` /
+`dsh_worker_events` / `dsh_worker_result`. When `needs_input` arrives, answer via
+`dsh_worker_message`, then wait once more.
+
+`stalled: true` is added when the job is still `running` but the hub has
+recorded no event for `STALL_QUIET_SECONDS` (1200 s, `src/hub-client.mjs`);
+`quiet_seconds` carries the raw gap so a long silent tool call can be told from
+a wedged retry loop. It is a hint to steer the worker, never a reason to cancel:
+the wait does not change the job's state.
+
+`report_path` (hub dispatches) is an absolute `REPORT.md` path under the worker
+cwd, plus a `[crew-report]` line prepended to the task asking the worker to keep
+that file current. It is the only deliverable that survives a client-side
+timeout, since a cancelled or timed-out hub job never gets a `result`.
 `result_preview` is capped at `RESULT_CHARS` (default 2000; 0 = no limit); an
 empty result stays `null`. Use `dsh_worker_result` for the full text.
 

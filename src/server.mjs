@@ -12,6 +12,7 @@ import { acquireCwdLock, releaseCwdLockByJobId, updateCwdLockHolder, getCwdLocks
 import { resolveWorkerCwd } from './paths.mjs';
 import { detectOrchestrator } from './process-info.mjs';
 import { pathToFileURL } from 'node:url';
+import { join } from 'node:path';
 import { readGlobalConfig } from './install/install.mjs';
 import { describeBindings, resolveTierBinding } from './tier-binding.mjs';
 
@@ -63,6 +64,31 @@ const sessionConfig = {
 const FULL_TOOLS = String(toolsProfile ?? sessionConfig.tools_profile).toLowerCase() === 'full';
 const RESULT_CHARS_RAW = Number(process.env.DSHPLUGIN_CREW_RESULT_CHARS ?? globalDefaults.result_max_chars ?? 2000);
 const RESULT_CHARS = Number.isFinite(RESULT_CHARS_RAW) && RESULT_CHARS_RAW >= 0 ? RESULT_CHARS_RAW : 2000;
+
+// C02: every hub dispatch gets its own report file. A client-side timeout
+// (wait budget spent, MCP process killed, cancel) leaves job.result null, so
+// the worker's own file on disk is the only deliverable that survives it.
+const REPORT_DIR = '.crew';
+const reportPaths = new Map();
+
+function newReportToken() {
+  return `run-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** Absolute REPORT.md path under the worker cwd for one dispatch. */
+function reportPathFor(workDir) {
+  return join(workDir, REPORT_DIR, newReportToken(), 'REPORT.md');
+}
+
+/** Front-load the report instruction so it is the first thing the worker reads. */
+function withReportDirective(task, reportPath) {
+  const line = `[crew-report] Keep a short report at ${reportPath} (create its parent directory first). `
+    + 'Write it before you finish, and update it as soon as you have something worth keeping: '
+    + 'what you changed, files touched, tests run, open risks. '
+    + 'It is the only deliverable that survives a client-side timeout, so never leave it empty. '
+    + 'If the task is blocked or impossible, write that reason there too.';
+  return `${line}\n\n---\n\n${task}`;
+}
 
 /** The {provider, model} this session dispatches `tier` to. */
 function bindingForTier(tier) {
@@ -146,7 +172,9 @@ function resultPayload(view, opts = {}) {
  */
 const QUESTION_PREVIEW_CHARS = 500;
 
-function waitPayload(view, timedOut) {
+function waitPayload(view, timedOut, meta = {}) {
+  const quiet = Number.isFinite(meta?.quiet_seconds) ? meta.quiet_seconds : null;
+  const stalled = !!meta?.stalled;
   let preview = null;
   const raw = view?.result;
   const limit = RESULT_CHARS === 0 ? Infinity : RESULT_CHARS;
@@ -171,6 +199,12 @@ function waitPayload(view, timedOut) {
     status: view?.status,
     turn: view?.turn ?? 0,
     timed_out: !!timedOut,
+    // C01: `stalled` means "still running, but the hub recorded no event for
+    // STALL_QUIET_SECONDS" — a hint to steer the worker, never a reason to
+    // cancel it. quiet_seconds is the raw gap, so the caller can judge.
+    ...(quiet === null ? {} : { quiet_seconds: quiet }),
+    ...(stalled ? { stalled: true } : {}),
+    ...(meta?.report_path ? { report_path: meta.report_path } : {}),
     last_event: view?.lastEvent ?? (view?.activity?.lastEventAt ? { at: view.activity.lastEventAt } : null),
     result_preview: preview,
     pending_questions: pending,
@@ -347,10 +381,12 @@ server.registerTool('dsh_run_worker', {
         throw err;
       }
       let spawned;
+      const reportPath = reportPathFor(workDir);
       try {
-        spawned = await hub.spawn({ task, tier: t, effort: e, cwd: workDir, source: ORCHESTRATOR, preset: presetForTier(t), ...bindingForTier(t), question_policy: sessionConfig.question_policy, idle_ttl_seconds: sessionConfig.idle_ttl_seconds, question_timeout_seconds: sessionConfig.question_timeout_seconds, origin_chain: origin.origin.chain, origin_depth: origin.origin.depth });
+        spawned = await hub.spawn({ task: withReportDirective(task, reportPath), tier: t, effort: e, cwd: workDir, source: ORCHESTRATOR, preset: presetForTier(t), ...bindingForTier(t), question_policy: sessionConfig.question_policy, idle_ttl_seconds: sessionConfig.idle_ttl_seconds, question_timeout_seconds: sessionConfig.question_timeout_seconds, origin_chain: origin.origin.chain, origin_depth: origin.origin.depth });
         updateCwdLockHolder({ cwd: workDir, jobId: spawned.id });
         hubOrigins.set(spawned.id, origin.origin);
+        reportPaths.set(spawned.id, reportPath);
       } catch (err) {
         lock.release();
         throw err;
@@ -361,7 +397,7 @@ server.registerTool('dsh_run_worker', {
       const got = await hub.get(spawned.id, timeout);
       attachOrigin(got, spawned.id);
       if (isTerminalJobStatus(got.status)) releaseCwdLockByJobId(spawned.id);
-      return { view: statusPayload(got) };
+      return { view: statusPayload(got), report_path: reportPath };
     }
     const origin = extendOrigin({ inherited: INHERITED_ORIGIN, backend: 'standalone', cwd: workDir, source: ORCHESTRATOR, depthLimit });
     if (!origin.ok) return { refusal: originRefusal(origin) };
@@ -380,7 +416,9 @@ server.registerTool('dsh_run_worker', {
   let res = await runOnce(firstTier);
   if (res.refusal) return res.refusal;
   let job = res.view;
-  if (job.status === 'running') return text({ ...job, note: `still running after ${timeout}s; poll with dsh_worker_result` });
+  let reportPath = res.report_path;
+  const withReport = (payload) => (reportPath ? { ...payload, report_path: reportPath } : payload);
+  if (job.status === 'running') return text(withReport({ ...job, note: `still running after ${timeout}s; poll with dsh_worker_result` }));
 
   // Escalate on evidence, not prediction: a failed flash run retries once on
   // pro — unless the policy pins the tier to flash.
@@ -390,10 +428,11 @@ server.registerTool('dsh_run_worker', {
     res = await runOnce('pro');
     if (res.refusal) return res.refusal;
     job = res.view;
-    if (job.status === 'running') return text({ ...job, escalated: true, note: `escalated to pro, still running after ${timeout}s; poll with dsh_worker_result` });
-    return text({ ...job, escalated: true, flash_failure: String(firstError).slice(0, 200) });
+    reportPath = res.report_path ?? reportPath;
+    if (job.status === 'running') return text(withReport({ ...job, escalated: true, note: `escalated to pro, still running after ${timeout}s; poll with dsh_worker_result` }));
+    return text(withReport({ ...job, escalated: true, flash_failure: String(firstError).slice(0, 200) }));
   }
-  return text(resultPayload(job));
+  return text(withReport(resultPayload(job)));
 });
 
 if (FULL_TOOLS) {
@@ -506,16 +545,18 @@ server.registerTool('dsh_spawn_worker', {
       throw err;
     }
     let spawned;
+    const reportPath = reportPathFor(workDir);
     try {
-      spawned = await hub.spawn({ task, tier: t, effort: e, cwd: workDir, source: ORCHESTRATOR, preset: presetForTier(t), ...bindingForTier(t), question_policy: sessionConfig.question_policy, idle_ttl_seconds: sessionConfig.idle_ttl_seconds, question_timeout_seconds: sessionConfig.question_timeout_seconds, origin_chain: origin.origin.chain, origin_depth: origin.origin.depth });
+      spawned = await hub.spawn({ task: withReportDirective(task, reportPath), tier: t, effort: e, cwd: workDir, source: ORCHESTRATOR, preset: presetForTier(t), ...bindingForTier(t), question_policy: sessionConfig.question_policy, idle_ttl_seconds: sessionConfig.idle_ttl_seconds, question_timeout_seconds: sessionConfig.question_timeout_seconds, origin_chain: origin.origin.chain, origin_depth: origin.origin.depth });
       updateCwdLockHolder({ cwd: workDir, jobId: spawned.id });
       hubOrigins.set(spawned.id, origin.origin);
+      reportPaths.set(spawned.id, reportPath);
     } catch (err) {
       lock.release();
       throw err;
     }
     attachOrigin(spawned, spawned.id);
-    return text(statusPayload(spawned));
+    return text({ ...statusPayload(spawned), report_path: reportPath });
   }
   const origin = extendOrigin({ inherited: INHERITED_ORIGIN, backend: 'standalone', cwd: workDir, source: ORCHESTRATOR, depthLimit });
   if (!origin.ok) return originRefusal(origin);
@@ -535,11 +576,11 @@ server.registerTool('dsh_worker_wait', {
   description: 'Block until a worker job settles, needs input, or ends a turn. Call once on the normal path instead of polling status/events.',
   inputSchema: {
     job_id: z.string().describe('Hub job id (starts with "hub-")'),
-    timeout_seconds: z.number().int().min(1).max(900).default(600).describe('Max seconds to wait (default 600, max 900)'),
+    timeout_seconds: z.number().int().min(1).max(1800).default(1800).describe('Max seconds to wait (default 1800, max 1800)'),
     until: z.enum(['settled', 'needs_input', 'turn_end']).default('settled').describe('settled (default) | needs_input | turn_end'),
   },
 }, async ({ job_id, timeout_seconds, until }) => {
-  const timeout = timeout_seconds ?? 600;
+  const timeout = timeout_seconds ?? 1800;
   const target = until ?? 'settled';
   if (job_id.startsWith('hub-')) {
     if (!(await hubReady())) return text({ error: 'hub not reachable' });
@@ -549,7 +590,7 @@ server.registerTool('dsh_worker_wait', {
       if (!view || !view.id) return text({ error: `no such job: ${job_id}` });
       attachOrigin(view, job_id);
       if (isTerminalJobStatus(view.status)) releaseCwdLockByJobId(job_id);
-      return text(waitPayload(view, waited.timed_out));
+      return text(waitPayload(view, waited.timed_out, { stalled: waited.stalled, quiet_seconds: waited.quiet_seconds, report_path: reportPaths.get(job_id) }));
     } catch (err) {
       return text(hubErrorPayload(err));
     }
@@ -628,7 +669,9 @@ server.registerTool('dsh_worker_result', {
     if (view && view.id) {
       attachOrigin(view, view.id);
       if (isTerminalJobStatus(view.status)) releaseCwdLockByJobId(job_id);
-      return text(resultPayload(view, { verbose, maxChars: max_chars }));
+      const payload = resultPayload(view, { verbose, maxChars: max_chars });
+      const rp = reportPaths.get(job_id);
+      return text(rp ? { ...payload, report_path: rp } : payload);
     }
     return text(view);
   }

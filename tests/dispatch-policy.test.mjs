@@ -42,18 +42,19 @@ test('prompt surfaces keep the wait semantics: timeout stops, needs_input resume
   for (const f of ['codex/agents/ds-pro.toml', 'codex/agents/ds-flash.toml']) {
     const toml = read(f);
     assert.match(toml, /dsh_worker_wait/);
-    assert.match(toml, /timeout_seconds` 600/);
-    assert.match(toml, /\/\/ @exec: \{"yield_time_ms": 630000\}/);
-    assert.match(toml, /930000/);
-    assert.match(toml, /1830000/);
-    assert.match(toml, /timed_out: true[\s\S]*do not wait again/);
+    assert.match(toml, /timeout_seconds: 1800/);
+    assert.match(toml, /\/\/ @exec: \{"yield_time_ms": 1830000\}/);
+    assert.match(toml, /timed_out: true[\s\S]*wait again/);
+    assert.match(toml, /NEVER call `dsh_worker_cancel`/);
+    assert.match(toml, /report_path/);
     assert.match(toml, /needs_input[\s\S]*dsh_worker_wait` once/);
     assert.doesNotMatch(toml, /dsh_worker_result` once with wait_seconds 600/);
   }
   const doc = read('docs/install-codex.md');
   assert.match(doc, /等待而不轮询/);
   assert.match(doc, /timeout_seconds × 1000 \+ 30000/);
-  assert.match(doc, /"yield_time_ms": 630000/);
-  assert.match(doc, /timed_out: true[\s\S]*不再自动等待/);
+  assert.match(doc, /1830000/);
+  assert.match(doc, /timed_out: true[\s\S]*不是失败/);
+  assert.match(doc, /禁止调用 `dsh_worker_cancel`/);
   assert.match(doc, /needs_input[\s\S]*dsh_worker_wait/);
 });

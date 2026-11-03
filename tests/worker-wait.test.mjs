@@ -83,7 +83,7 @@ test('core profile exposes six tools including dsh_worker_wait', async () => {
   await client.close(); await server.close();
 });
 
-test('already settled: returns the fixed shape with defaults 600/settled', async () => {
+test('already settled: returns the fixed shape with defaults 1800/settled', async () => {
   const hub = makeFakeHub({ 'hub-1-wait': { job: job() } });
   const { data, client, server } = await callWait(hub, { job_id: 'hub-1-wait' });
 
@@ -95,7 +95,7 @@ test('already settled: returns the fixed shape with defaults 600/settled', async
   assert.deepEqual(data.last_event, { seq: 9, ts: '2026-11-01T02:00:00.000Z', type: 'turn/settled', summary: 'turn 2 settled' });
   assert.equal(data.result_preview, 'finished fine');
   assert.deepEqual(data.pending_questions, []);
-  assert.deepEqual(hub.calls[0].opts, { until: 'settled', timeoutSeconds: 600 });
+  assert.deepEqual(hub.calls[0].opts, { until: 'settled', timeoutSeconds: 1800 });
 
   await client.close(); await server.close();
 });

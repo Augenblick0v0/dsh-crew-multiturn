@@ -3,7 +3,7 @@
 // a live hub; worker-wait.test.mjs separately covers the MCP tool surface.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sliceSeconds, reachedTarget, hub, HubRequestError } from '../src/hub-client.mjs';
+import { sliceSeconds, reachedTarget, quietSecondsOf, STALL_QUIET_SECONDS, hub, HubRequestError } from '../src/hub-client.mjs';
 
 const job = (overrides = {}) => ({ id: 'hub-wait-1', status: 'running', turn: 1, ...overrides });
 const reply = (value) => ({ ok: true, status: 200, json: async () => ({ ok: true, job: value }) });
@@ -128,4 +128,39 @@ test('waitFor: aborts a hung request at the deadline', async () => {
     assert.equal(result.job, null);
   });
   assert.ok(Date.now() - started < 500, 'abort must fire near the deadline');
+});
+
+test('quietSecondsOf measures the gap and refuses to guess', () => {
+  assert.equal(quietSecondsOf({ lastEventAt: null }), null);
+  assert.equal(quietSecondsOf({}), null);
+  assert.equal(quietSecondsOf({ lastEventAt: 'not-a-date' }), null);
+  const fresh = quietSecondsOf({ lastEventAt: new Date().toISOString() });
+  assert.ok(fresh !== null && fresh <= 2, `fresh gap was ${fresh}`);
+  const old = quietSecondsOf({ lastEventAt: new Date(Date.now() - 100_000).toISOString() });
+  assert.ok(old >= 99 && old <= 102, `old gap was ${old}`);
+});
+
+test('waitFor: a running job silent for the stall window stops early and says so', async () => {
+  const silent = new Date(Date.now() - (STALL_QUIET_SECONDS + 120) * 1000).toISOString();
+  const waits = [];
+  await withFetch(async (url) => {
+    waits.push(Number(new URL(url).searchParams.get('wait')));
+    return reply(job({ status: 'running', lastEventAt: silent }));
+  }, async () => {
+    const result = await hub.waitFor('hub-wait-1', { timeoutSeconds: 1800 });
+    assert.equal(result.timed_out, true);
+    assert.equal(result.stalled, true);
+    assert.ok(result.quiet_seconds >= STALL_QUIET_SECONDS);
+    assert.equal(result.job.status, 'running', 'a stalled wait never changes the job');
+  });
+  assert.deepEqual(waits, [0], 'the baseline alone is enough to report the stall');
+});
+
+test('waitFor: a fresh running job is not reported as stalled', async () => {
+  await withFetch(async () => reply(job({ status: 'running', lastEventAt: new Date().toISOString() })), async () => {
+    const result = await hub.waitFor('hub-wait-1', { timeoutSeconds: 2 });
+    assert.equal(result.timed_out, true);
+    assert.equal(result.stalled, undefined);
+    assert.equal(result.job.status, 'running');
+  });
 });

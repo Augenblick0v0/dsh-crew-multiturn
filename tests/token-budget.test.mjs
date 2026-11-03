@@ -39,12 +39,13 @@ test('tool descriptions and parameter docs stay within the 1,700 character budge
   await client.close(); await server.close();
 });
 
-test('dsh_worker_wait defaults to 600 seconds and the settled target', async () => {
+test('dsh_worker_wait defaults to 1800 seconds and the settled target', async () => {
   const { client, server } = await connect();
   const { tools } = await client.listTools();
   const tool = tools.find((t) => t.name === 'dsh_worker_wait');
   assert.ok(tool, 'dsh_worker_wait is in the core profile');
-  assert.equal(tool.inputSchema.properties.timeout_seconds.default, 600);
+  assert.equal(tool.inputSchema.properties.timeout_seconds.default, 1800);
+  assert.equal(tool.inputSchema.properties.timeout_seconds.maximum, 1800);
   assert.equal(tool.inputSchema.properties.until.default, 'settled');
   assert.deepEqual(tool.inputSchema.properties.until.enum, ['settled', 'needs_input', 'turn_end']);
   await client.close(); await server.close();
