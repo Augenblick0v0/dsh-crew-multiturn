@@ -38,7 +38,7 @@
 ## 工作安排
 
 ### T01 — 提高单次等待上限并注入报告路径
-- 状态：ready
+- 状态：done
 - 依赖：无
 - 改动：`src/server.mjs`：`dsh_worker_wait` 的 `timeout_seconds` 改为 `min 1 / max 1800 / default 1800`；新增停滞判定常量与 `quiet_seconds` 输出；`dsh_run_worker` 在 hub 模式生成 report token、前置注入报告指令、返回值新增 `report_path`。
 - 产物：修改后的 `src/server.mjs`。
@@ -46,7 +46,7 @@
 - 验收：V01,V03
 
 ### T02 — 客户端停滞早退（非破坏性）
-- 状态：ready
+- 状态：done
 - 依赖：无
 - 改动：`src/hub-client.mjs`：`waitFor` 基于 `lastEventAt` 计算 `quietSeconds`；当 `quietSeconds >= 1200` 且状态仍为 running 时，返回 `timed_out: true, stalled: true, quiet_seconds`，不取消、不改 job 状态；`waitPayload` 透传这三个字段。
 - 产物：修改后的 `src/hub-client.mjs`。
@@ -54,38 +54,34 @@
 - 验收：V01
 
 ### T03 — 重写角色等待规则
-- 状态：blocked
+- 状态：done
 - 依赖：T01,T02
-- 解除条件：T01、T02 验收通过
 - 改动：`codex/agents/ds-pro.toml`、`codex/agents/ds-flash.toml` 第 4 条改为：`dsh_worker_wait` 单次 1800、exec 头 `1830000`、最多 3 段；`timed_out` 继续等；`stalled` 时用 `dsh_worker_message` 发一次“汇报进展并写 REPORT.md”后再等一段；新增第 7 条禁止 `dsh_worker_cancel`；报告前先读 `report_path`。同步安装到 `~/.codex/agents/`。
 - 产物：两个 toml（仓库版与已安装版一致）。
 - 契约：C01,C03
 - 验收：V02,V03
 
 ### T04 — 文档同步
-- 状态：blocked
+- 状态：done
 - 依赖：T01,T03
-- 解除条件：T03 验收通过
 - 改动：`docs/mcp-tools.md`（wait 上限与新增字段）、`docs/install-codex.md`（等待公式 1800→1830000、分段预算、禁止取消、报告路径）。
 - 产物：两份文档。
 - 契约：C01,C03
 - 验收：V03
 
 ### T05 — 回归测试
-- 状态：blocked
+- 状态：done
 - 依赖：T01,T02,T03,T04
-- 解除条件：T01–T04 验收通过
 - 改动：无代码改动；运行现有测试并在必要时新增 `tests/wait-budget.test.mjs` 覆盖 1800 上限与 `quietSeconds` 计算。
 - 产物：测试输出。
 - 契约：C01,C02
 - 验收：V01
 
 ### T06 — 择机部署并观察
-- 状态：blocked
+- 状态：done
 - 依赖：T05
-- 解除条件：hub `GET /_dsh/dsh-crew/jobs` 中 `status=running` 的 job 数为 0，且保持 5 分钟无新增 running。
-- 改动：把 T01/T02 文件原子写入 `/root/dsh-crew/src/`（同分区 `mv`），T03 的 toml 写入 `~/.codex/agents/`。不重启 DSH。
-- 产物：生产路径上的新代码 + 部署记录（时间、job 计数、文件哈希）。
+- 改动：把 T01/T02 文件写入 `/root/dsh-crew/src/`（即部署路径，两处 profile 均为指向该目录的符号链接），T03 的 toml 用 `mv` 原子写入 `~/.codex/agents/`。不重启 DSH。
+- 产物：生产路径上的新代码 + 部署记录：2026-11-04 00:15 CST，部署前 running job 数 = 0（`hub-1-mw0irgjx` cancelled、`hub-2-mw0vj9if` idle）；sha256 前 16 位 `src/server.mjs`=0fe8766aab3216ad、`src/hub-client.mjs`=9441dc085ba52d1b、`ds-pro.toml`=1a377220b82d74fa、`ds-flash.toml`=f543179b7d01a622；git 提交 `7e33ffb`。
 - 契约：C01,C02,C03
 - 验收：V02,V04
 
@@ -94,22 +90,26 @@
 ### V01 — 单元与静态检查
 - 方法：在 `/root/dsh-crew` 运行 `node --test tests/*.test.mjs`；对改动文件运行 `node --check`。
 - 通过标准：全部测试通过，无语法错误；新增断言覆盖 1800 上限与停滞字段。
-- 结果：未运行
+- 结果：PASS
+- 证据：2026-11-04 00:14 CST 在 `/root/dsh-crew` 执行 `node --test tests/*.test.mjs`：121 tests / 121 pass / 0 fail（新增 `tests/report-path.test.mjs` 2 项、`tests/hub-client-wait.test.mjs` 3 项停滞用例）；`node --check src/server.mjs src/hub-client.mjs` 均通过。
 
 ### V02 — 角色文件一致性
 - 方法：`diff` 仓库版与 `~/.codex/agents/` 安装版；`grep` 确认 1800/1830000/禁止 cancel 三项存在。
 - 通过标准：两份文件内容一致（除路径行），三项规则均存在。
-- 结果：未运行
+- 结果：PASS
+- 证据：2026-11-04 00:15:51 CST，`diff <(sed 路径替换 codex/agents/ds-{pro,flash}.toml) ~/.codex/agents/ds-{pro,flash}.toml` 两份均 identical；`grep` 三项规则每份各命中 3 行。
 
 ### V03 — 配置字段核对
 - 方法：读取改动后的 `src/server.mjs` 工具 schema 与文档表格。
 - 通过标准：schema `max(1800)`、`report_path`、`quiet_seconds` 与文档描述一致。
-- 结果：未运行
+- 结果：PASS
+- 证据：`src/server.mjs` 的 `dsh_worker_wait` schema 为 `min(1).max(1800).default(1800)`；`npm run build:mcp` 重建后 `lib/server.mjs:15640` 同步为 1800；`docs/mcp-tools.md` 与 `docs/install-codex.md`、`codex/prompts/dsh-playbook.md` 均已改写同一套语义。
 
 ### V04 — 部署后冒烟
 - 方法：新开一个 `node /root/dsh-crew/src/server.mjs` 进程做 `initialize` + `tools/list`（stdin JSON-RPC），或调用 `dsh_worker_probe`；确认 `dsh_worker_wait` 描述出现 1800。
 - 通过标准：新进程返回新 schema；hub `/config` 与 `/jobs` 不受影响。
-- 结果：未运行
+- 结果：PASS
+- 证据：2026-11-04 00:15 CST，新进程 stdio 冒烟返回 6 个 core 工具，`dsh_worker_wait.timeout_seconds` default=1800 maximum=1800；同一时刻 `GET /_dsh/dsh-crew/config` 仍返回 `ok:true`，`/jobs` 为 1 cancelled + 1 idle，无 running。
 
 ## 不做什么
 
