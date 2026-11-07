@@ -18,8 +18,8 @@ import { probeProvider } from '../provider-probe.mjs';
 // module realms (symbol identity mismatches in the tool runtime). Everything
 // below is either plain data or inlined logic that only touches ctx APIs.
 
-/** Inlined from @deepseek-ai/dsh-agent model-selection.ts (same semantics). */
-function installModelSelection(agentCtx, selection) {
+/** Compatibility for hosts predating Agent.model.select (DSH < 0.2.2). */
+function installLegacyModelSelection(agentCtx, selection) {
   agentCtx.on('system-prompt/assemble', async (_assembly, _cause, next) => {
     const selected = selection.current;
     const assembled = await next();
@@ -496,8 +496,15 @@ export class WorkerRegistry {
   }
 
   #agentSetup(job) {
-    return async (agentCtx) => {
-      installModelSelection(agentCtx, { current: job._selection, assembled: undefined });
+    return async (agentCtx, agent) => {
+      // DSH 0.2.2 fixes the complete selection before agent/request runs.
+      // Record it during both create and resume setup; a request hook is too
+      // late and would disagree with the prepared adapter's reasoning effort.
+      if (typeof agent?.model?.select === 'function') {
+        agent.model.select(job._selection);
+      } else {
+        installLegacyModelSelection(agentCtx, { current: job._selection, assembled: undefined });
+      }
       if (job._presets !== undefined) await job._presets.mount(agentCtx, job._presetId);
       // Claim this agent's requests ahead of the Web answerer. C02: `ask`
       // parks the question until /answer (default); `handoff` is the upstream

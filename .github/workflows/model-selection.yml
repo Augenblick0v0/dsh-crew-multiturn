@@ -1,0 +1,25 @@
+name: Hub model selection
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  hub-regressions:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      # These tests use the host API contract and built-in Node modules only.
+      # They do not install a DSH copy into the plugin's module realm.
+      - run: node --test tests/model-selection.test.mjs tests/multiturn.test.mjs tests/tier-binding-wiring.test.mjs tests/hub-routes.test.mjs

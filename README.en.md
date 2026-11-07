@@ -11,7 +11,7 @@
 
 <p align="center">
   <sub><a href="./README.md">简体中文</a> · English</sub><br />
-  <sub>Version <code>1.0.0</code> (unreleased) &middot; Tested with DSH <code>0.2.1-rc.4</code> and Codex <code>0.162.1</code></sub>
+  <sub>Version <code>1.0.0</code> (unreleased) &middot; Hub tested with DSH <code>0.2.2-rc.1</code>; retains the <code>0.2.1</code> compatibility path</sub>
 </p>
 
 ---
@@ -79,7 +79,7 @@ an explicit `steer` cuts into the current turn. `dsh_worker_status` accepts
 
 ## Install
 
-> Requires Node 22+, pnpm, and a working DSH install (`dsh` on `PATH`). Nothing is on npm yet — install from source.
+> The MCP server requires Node 22+, pnpm, and a working DSH install (`dsh` on `PATH`). The DSH `0.2.2-rc.1` host requires Node **24.9.0+**; check the Node version used by the terminal or service that starts DSH as well. Nothing is on npm yet — install from source.
 
 ```bash
 git clone https://github.com/Augenblick0v0/dsh-crew-multiturn.git
@@ -211,9 +211,11 @@ Codex / Claude Code / Antigravity
 
 ## Compatibility and state
 
-- DSH `0.2.1-rc.4` (built against its `SubagentProvider` / `AgentFactory` / `user-questions` seams).
+- Hub mode was tested with DSH **`0.2.2-rc.1`** and Node `24.22.1`: an initial request and same-session follow-up both completed with an explicit model and `max` reasoning effort.
+- New hosts use `Agent.model.select()` during session creation and resume, before step preparation fixes the model and effort. Regression tests cover dispatch, follow-up and resume for `flash` / `pro` × `off` / `high` / `max`.
+- Previously tested with DSH `0.2.1-rc.4`. Hosts without `Agent.model.select()` retain the original selection hooks, covered by compatibility tests. Standalone mode keeps its existing SDK/runtime configuration and was not included in the new-host live verification.
 - Codex `0.162.1` (agent roles + MCP server; plugin bundle in `codex/plugin/`).
-- `pnpm test` → 79 tests, all passing.
+- `pnpm test` → 129 tests, all passing; CI runs the Hub model-selection and multi-turn regressions on Node 22 / 24.
 - Version starts at **`1.0.0`** (this repo's own line, independent of upstream `0.1.0-rc.x`).
   **No npm publish, no GitHub release, no tag yet** — testing first.
 

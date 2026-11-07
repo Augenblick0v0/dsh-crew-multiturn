@@ -11,7 +11,7 @@
 
 <p align="center">
   <sub>简体中文 · <a href="./README.en.md">English</a></sub><br />
-  <sub>版本 <code>1.0.0</code>（未发布） &middot; 已在 DSH <code>0.2.1-rc.4</code> 与 Codex <code>0.162.1</code> 上验证</sub>
+  <sub>版本 <code>1.0.0</code>（未发布） &middot; Hub 已适配并实测 DSH <code>0.2.2-rc.1</code>；保留 <code>0.2.1</code> 兼容路径</sub>
 </p>
 
 ---
@@ -77,7 +77,7 @@
 
 ## 安装
 
-> 需要 Node 22+、pnpm，以及可用的 DSH（`dsh` 在 PATH 里）。还没发 npm，只能从源码装。
+> MCP server 需要 Node 22+、pnpm，以及可用的 DSH（`dsh` 在 PATH 里）。DSH `0.2.2-rc.1` 宿主需要 Node **24.9.0+**；请同时检查启动 DSH 的终端或服务所用的 Node 版本。还没发 npm，只能从源码装。
 
 ```bash
 git clone https://github.com/Augenblick0v0/dsh-crew-multiturn.git
@@ -169,7 +169,7 @@ worker 需要你拍板时不会死，而是挂起问题：
 |---|---|
 | `dsh_run_worker` | 派发并等第一轮结果 |
 | `dsh_spawn_worker` | 异步派发，返回 job id |
-| `dsh_worker_wait` | 单次阻塞等待：settled / needs_input / turn_end，默认 600 秒、上限 900 |
+| `dsh_worker_wait` | 单次阻塞等待：settled / needs_input / turn_end，默认及上限均为 1800 秒 |
 | `dsh_worker_message` | 同一 job 的下一轮：`auto`（运行中 steer、空闲 followup、已结束 resume）、`steer`、`followup` |
 | `dsh_worker_status` | 状态、轮次、当前工具、token、待答问题 |
 | `dsh_worker_result` | `{status, turns, result, pendingQuestions}` |
@@ -207,9 +207,11 @@ Codex / Claude Code / Antigravity
 
 ## 兼容性与状态
 
-- DSH `0.2.1-rc.4`（依赖它的 `SubagentProvider` / `AgentFactory` / `user-questions` seam）。
+- Hub 模式已在 DSH **`0.2.2-rc.1`** + Node `24.22.1` 实测：指定模型和 `max` 推理强度的首次运行、同一会话续聊均成功。
+- 新版宿主通过 `Agent.model.select()` 在创建或恢复会话时确定模型与推理强度，避免在 `agent/request` 阶段修改已准备好的选择。`flash` / `pro` × `off` / `high` / `max` 的新建、续聊、恢复均有回归测试。
+- 曾在 DSH `0.2.1-rc.4` 验证；缺少 `Agent.model.select()` 的旧宿主保留原有选择钩子并有兼容测试。Standalone 模式仍使用仓库原有的 SDK/运行时配置，不属于本次新版宿主实测范围。
 - Codex `0.162.1`（agent roles + MCP server；插件包在 `codex/plugin/`）。
-- `pnpm test` → 116 个测试全过。
+- `pnpm test` → 129 个测试全过；CI 在 Node 22 / 24 上执行 Hub 模型选择与多轮回归测试。
 - 版本从 **`1.0.0`** 起（本仓库自有版本线，与上游 `0.1.0-rc.x` 无关）。
   **暂未发 npm、暂未建 Release、暂未打 tag**——先测。
 
